@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Papan Pemuka Analitik PPD</title>
     
+    <!-- FAVICON SUNTIKAN BERDASARKAN LOGO DRIVE -->
+    <link rel="icon" href="https://drive.google.com/thumbnail?id=18VTHEYDgvec8VXeyp53EMi8xB2r796F0&sz=w128" type="image/png">
+    
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -51,8 +54,15 @@
     <header class="glass-header sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <!-- Logo Menggunakan Pautan Direct View Google Drive -->
-                <img src="https://drive.google.com/uc?export=view&id=18VTHEYDgvec8VXeyp53EMi8xB2r796F0" alt="Logo PPD" class="h-12 w-auto object-contain">
+                <!-- 
+                  PEMBAIKAN LOGO: 
+                  1. Menggunakan Endpoint Thumbnail Google Drive (&sz=w500 untuk resolusi optimum).
+                  2. Menambah Fallback onerror dengan imej fail SVG Base64 jika Drive disekat CORS. 
+                -->
+                <img src="https://drive.google.com/thumbnail?id=18VTHEYDgvec8VXeyp53EMi8xB2r796F0&sz=w500" 
+                     alt="Logo PPD" 
+                     class="h-12 w-auto object-contain"
+                     onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjU2M2ViIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDE0bDktNS05LTUtOSA1IDkgNXoiLz48cGF0aCBkPSJNMTIgMTRsNi4xNi0zLjQyMmExMi4wODMgMTIuMDgzIDAgMDEuNjY1IDYuNDc5QTExLjk1MiAxMS45NTIgMCAwMDEyIDIwLjA1NWExMS45NTIgMTEuOTUyIDAgMDAtNi44MjQtMi45OTggMTIuMDc4IDEyLjA3OCAwIDAxLjY2NS02LjQ3OUwxMiAxNHoiLz48cGF0aCBkPSJNMTIgMjB2LThsNC0yLjIyMiIvPjwvc3ZnPg==';">
                 <div>
                     <h1 class="text-xl font-extrabold text-slate-900 tracking-tight leading-tight">Sistem Pengurusan Data</h1>
                     <p class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Pejabat Pendidikan Daerah</p>
@@ -151,7 +161,7 @@
     <!-- LOGIK JAVASCRIPT MUTLAK -->
     <script>
         /**
-         * URL Mutlak Backend Google Apps Script (Sesuai dengan apa yang anda berikan)
+         * URL Mutlak Backend Google Apps Script
          */
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyFH10xxy3k85cShpctkrpHLfflCMtGbDBn91bocve3pX_p7V3E55PQMi8XG9Mi7aZ5/exec";
         
