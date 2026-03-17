@@ -34,7 +34,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
@@ -119,6 +119,9 @@
                 
                 <!-- Kontena Utama Metrik akan disuntik di sini -->
                 <div id="overallMetricsContainer"></div>
+
+                <!-- Kontena Papan Pendahulu Sekolah (Jadual) akan disuntik di sini -->
+                <div id="leaderboardContainer" class="mt-8"></div>
             </div>
 
             <!-- B: Papan Pemuka Spesifik Sekolah -->
@@ -197,6 +200,9 @@
 
                 // Bina UI Papan Pemuka Keseluruhan
                 buildMetricsUI(globalData.overall, 'overallMetricsContainer');
+
+                // Bina Papan Pendahulu Sekolah
+                buildLeaderboardTable(globalData.schools);
                 
                 // Sembunyikan Loader, Paparkan App
                 document.getElementById('loadingState').classList.add('hidden');
@@ -226,7 +232,8 @@
                 const query = e.target.value.toLowerCase().trim();
                 input.value = input.value.toUpperCase(); // Force uppercase visual
                 
-                if (!query || !globalData || !globalData.schools) {
+                // Logik memastikan carian aktif walaupun dengan 1 huruf
+                if (query.length === 0 || !globalData || !globalData.schools) {
                     dropdown.classList.add('hidden');
                     return;
                 }
@@ -280,7 +287,97 @@
         }
 
         /**
-         * FASA 3: Transisi Paparan
+         * FASA 3: Papan Pendahulu (Leaderboard) & Susunan Prestasi Log Masuk
+         */
+        function buildLeaderboardTable(schools) {
+            const container = document.getElementById('leaderboardContainer');
+
+            // Salin tatasusunan data dan buat pengiraan peratusan
+            const sortedSchools = [...schools].map(s => {
+                const total = s.jumlahAkaun || 0;
+                const loginCount = (s.jumlahAktif || 0) + (s.jumlahTidakAktif || 0);
+                const percentage = total > 0 ? (loginCount / total) * 100 : 0;
+                return { ...s, loginCount, percentage };
+            }).sort((a, b) => b.percentage - a.percentage); // Susun secara Menurun (Descending)
+
+            // Bina baris jadual
+            let tableRows = '';
+            sortedSchools.forEach((s, index) => {
+                const isTop3 = index < 3;
+                const rankClass = isTop3 ? 'font-extrabold text-blue-600' : 'font-medium text-slate-500';
+                
+                tableRows += `
+                    <tr class="hover:bg-blue-50/50 transition-colors cursor-pointer group" onclick="simulateSchoolSearch('${s.namaSekolah}')">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${rankClass}">${index + 1}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${s.namaSekolah}</div>
+                            <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">${s.kodSekolah}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.jumlahAkaun)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.loginCount)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <span class="inline-flex items-center justify-center px-2.5 py-1 text-xs font-bold rounded shadow-sm border ${s.percentage >= 80 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : s.percentage >= 50 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-rose-50 border-rose-200 text-rose-700'}">
+                                ${s.percentage.toFixed(1)}%
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Suntikan HTML ke dalam Container
+            container.innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800 tracking-tight">Prestasi Log Masuk Sekolah (Papan Pendahulu)</h3>
+                            <p class="text-xs font-medium text-slate-500 mt-1">Berdasarkan ((Aktif + Tidak Aktif) / Jumlah Akaun). Tatal ke bawah untuk melihat senarai penuh.</p>
+                        </div>
+                        <span class="hidden sm:inline-flex bg-white text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-1 rounded uppercase shadow-sm">
+                            Jumlah Data: ${sortedSchools.length}
+                        </span>
+                    </div>
+                    <!-- Kelas max-h-[400px] dan overflow-y-auto memberikan fungsi tatalan yang menghadkan paparan kepada ~10 baris pertama -->
+                    <div class="max-h-[400px] overflow-y-auto relative">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead class="bg-slate-100 sticky top-0 z-10 shadow-sm backdrop-blur-sm bg-opacity-95">
+                                <tr>
+                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Ked.</th>
+                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Entiti Sekolah</th>
+                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Jumlah ID</th>
+                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Pernah Login</th>
+                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Peratusan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Fungsi sokongan untuk membolehkan klik pada jadual menavigasi ke paparan sekolah tersebut
+        function simulateSchoolSearch(schoolName) {
+            const input = document.getElementById('searchInput');
+            input.value = schoolName;
+            
+            // Pencetus manual input event
+            const event = new Event('input', {
+                bubbles: true,
+                cancelable: true,
+            });
+            input.dispatchEvent(event);
+            
+            // Mencari dan mengaktifkan pilihan pertama
+            setTimeout(() => {
+                const firstOption = document.querySelector('#autocompleteDropdown > div');
+                if(firstOption) firstOption.click();
+            }, 50);
+        }
+
+        /**
+         * FASA 4: Transisi Paparan
          */
         function renderSchoolView(schoolData) {
             // Tutup Dropdown dan kemas kini kotak carian
@@ -317,7 +414,7 @@
         }
 
         /**
-         * FASA 4: Enjin Pembina UI Berpusat (Boleh diguna semula untuk Overall & Spesifik)
+         * FASA 5: Enjin Pembina UI Berpusat (Boleh diguna semula untuk Overall & Spesifik)
          */
         function buildMetricsUI(dataObj, containerId) {
             const container = document.getElementById(containerId);
