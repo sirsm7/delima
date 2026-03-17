@@ -117,6 +117,8 @@
                     <span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">Peringkat PPD</span>
                 </div>
                 
+                <p class="text-sm text-slate-500 italic mb-[-1rem]">Tip: Klik pada mana-mana kad metrik di bawah untuk menapis Papan Pendahulu secara automatik.</p>
+                
                 <!-- Kontena Utama Metrik akan disuntik di sini -->
                 <div id="overallMetricsContainer"></div>
 
@@ -170,6 +172,8 @@
         
         // Memori Global (Global State)
         let globalData = null;
+        let currentLeaderboardData = []; // Data jadual yang sedang aktif untuk fungsi eksport
+        let currentFilterType = 'keseluruhan'; // Penapis aktif
 
         // Inisialisasi sebaik sahaja DOM sedia
         document.addEventListener('DOMContentLoaded', () => {
@@ -201,8 +205,8 @@
                 // Bina UI Papan Pemuka Keseluruhan
                 buildMetricsUI(globalData.overall, 'overallMetricsContainer');
 
-                // Bina Papan Pendahulu Sekolah
-                buildLeaderboardTable(globalData.schools);
+                // Bina Papan Pendahulu Sekolah (Paparan lalai: Keseluruhan)
+                buildLeaderboardTable(globalData.schools, 'keseluruhan');
                 
                 // Sembunyikan Loader, Paparkan App
                 document.getElementById('loadingState').classList.add('hidden');
@@ -287,54 +291,136 @@
         }
 
         /**
-         * FASA 3: Papan Pendahulu (Leaderboard) & Susunan Prestasi Log Masuk
+         * FASA 3: Papan Pendahulu Dinamik (Penapis Kad) & Enjin Eksport CSV
          */
-        function buildLeaderboardTable(schools) {
+         
+        // Fungsi Pencetus dari Kad Metrik
+        function applyLeaderboardFilter(type) {
+            if (!globalData || !globalData.schools) return;
+            currentFilterType = type;
+            buildLeaderboardTable(globalData.schools, type);
+            
+            // Animasi scroll turun ke jadual
+            document.getElementById('leaderboardContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function buildLeaderboardTable(schools, filterType) {
             const container = document.getElementById('leaderboardContainer');
 
-            // Salin tatasusunan data dan buat pengiraan peratusan
-            const sortedSchools = [...schools].map(s => {
-                const total = s.jumlahAkaun || 0;
-                const loginCount = (s.jumlahAktif || 0) + (s.jumlahTidakAktif || 0);
-                const percentage = total > 0 ? (loginCount / total) * 100 : 0;
-                return { ...s, loginCount, percentage };
-            }).sort((a, b) => b.percentage - a.percentage); // Susun secara Menurun (Descending)
+            // Set Pemetaan Data Berdasarkan Penapis (Filter)
+            let filteredSchools = [];
+
+            schools.forEach(s => {
+                let total = 0, metricCount = 0;
+                
+                // Pemetaan Dinamik berdasarkan Penapis Semasa
+                if (filterType === 'murid') {
+                    total = s.muridKeseluruhan || 0;
+                    metricCount = (s.muridAktif || 0) + (s.muridTidakAktif || 0);
+                } else if (filterType === 'guru') {
+                    total = s.guruKeseluruhan || 0;
+                    metricCount = (s.guruAktif || 0) + (s.guruTidakAktif || 0);
+                } else if (filterType === 'sekolah') {
+                    total = s.sekolahKeseluruhan || 0;
+                    metricCount = (s.sekolahAktif || 0) + (s.sekolahTidakAktif || 0);
+                } else if (filterType === 'aktif') {
+                    total = s.jumlahAkaun || 0;
+                    metricCount = s.jumlahAktif || 0;
+                } else if (filterType === 'tidak_aktif') {
+                    total = s.jumlahAkaun || 0;
+                    metricCount = s.jumlahTidakAktif || 0;
+                } else if (filterType === 'belum_login') {
+                    total = s.jumlahAkaun || 0;
+                    metricCount = s.jumlahBelumLogin || 0;
+                } else {
+                    // Default Keseluruhan
+                    total = s.jumlahAkaun || 0;
+                    metricCount = (s.jumlahAktif || 0) + (s.jumlahTidakAktif || 0);
+                }
+
+                // Logik Penapis Teras: HANYA sekolah yang ada ID bagi kategori tersebut akan dipaparkan (total > 0)
+                if (total > 0) {
+                    const percentage = (metricCount / total) * 100;
+                    // Simpan mapping nilai dinamik supaya mudah dieksport
+                    filteredSchools.push({ ...s, mappedTotal: total, metricCount, percentage });
+                }
+            });
+
+            // Susun secara Menurun (Descending)
+            currentLeaderboardData = filteredSchools.sort((a, b) => b.percentage - a.percentage); 
+
+            // Format Nama Penapis untuk Tajuk
+            const filterNames = {
+                'keseluruhan': 'Keseluruhan Akaun (Semua)',
+                'murid': 'Kategori Murid Sahaja',
+                'guru': 'Kategori Guru Sahaja',
+                'sekolah': 'Kategori Sekolah Sahaja',
+                'aktif': 'Status: Aktif Log Masuk',
+                'tidak_aktif': 'Status: Tidak Aktif (>90 Hari)',
+                'belum_login': 'Status: Belum Pernah Login'
+            };
+            const currentTitle = filterNames[filterType];
+
+            // Tajuk Lajur Dinamik untuk Jadual
+            const columnNames = {
+                'keseluruhan': 'Pernah Login',
+                'murid': 'Pernah Login',
+                'guru': 'Pernah Login',
+                'sekolah': 'Pernah Login',
+                'aktif': 'Aktif Login',
+                'tidak_aktif': 'Tidak Aktif',
+                'belum_login': 'Belum Login'
+            };
+            const metricColumnTitle = columnNames[filterType];
 
             // Bina baris jadual
             let tableRows = '';
-            sortedSchools.forEach((s, index) => {
-                const isTop3 = index < 3;
-                const rankClass = isTop3 ? 'font-extrabold text-blue-600' : 'font-medium text-slate-500';
-                
-                tableRows += `
-                    <tr class="hover:bg-blue-50/50 transition-colors cursor-pointer group" onclick="simulateSchoolSearch('${s.namaSekolah}')">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm ${rankClass}">${index + 1}</td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${s.namaSekolah}</div>
-                            <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">${s.kodSekolah}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.jumlahAkaun)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.loginCount)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <span class="inline-flex items-center justify-center px-2.5 py-1 text-xs font-bold rounded shadow-sm border ${s.percentage >= 80 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : s.percentage >= 50 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-rose-50 border-rose-200 text-rose-700'}">
-                                ${s.percentage.toFixed(1)}%
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            });
+            if (currentLeaderboardData.length === 0) {
+                tableRows = `<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-slate-500 font-medium">Tiada data sekolah dijumpai untuk kategori ini.</td></tr>`;
+            } else {
+                currentLeaderboardData.forEach((s, index) => {
+                    const isTop3 = index < 3;
+                    const rankClass = isTop3 ? 'font-extrabold text-blue-600' : 'font-medium text-slate-500';
+                    
+                    tableRows += `
+                        <tr class="hover:bg-blue-50/50 transition-colors cursor-pointer group" onclick="simulateSchoolSearch('${s.namaSekolah}')">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm ${rankClass}">${index + 1}</td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${s.namaSekolah}</div>
+                                <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">${s.kodSekolah}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.mappedTotal)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.metricCount)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <span class="inline-flex items-center justify-center px-2.5 py-1 text-xs font-bold rounded shadow-sm border ${s.percentage >= 80 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : s.percentage >= 50 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-rose-50 border-rose-200 text-rose-700'}">
+                                    ${s.percentage.toFixed(1)}%
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
 
             // Suntikan HTML ke dalam Container
             container.innerHTML = `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h3 class="text-lg font-bold text-slate-800 tracking-tight">Prestasi Log Masuk Sekolah (Papan Pendahulu)</h3>
-                            <p class="text-xs font-medium text-slate-500 mt-1">Berdasarkan ((Aktif + Tidak Aktif) / Jumlah Akaun). Tatal ke bawah untuk melihat senarai penuh.</p>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-bold text-slate-800 tracking-tight">Prestasi Log Masuk Sekolah</h3>
+                                <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">${currentTitle}</span>
+                            </div>
+                            <p class="text-xs font-medium text-slate-500 mt-1">Hanya memaparkan sekolah yang mempunyai sekurang-kurangnya 1 ID bagi kategori ini.</p>
                         </div>
-                        <span class="hidden sm:inline-flex bg-white text-slate-600 border border-slate-200 text-[10px] font-bold px-2 py-1 rounded uppercase shadow-sm">
-                            Jumlah Data: ${sortedSchools.length}
-                        </span>
+                        <div class="flex gap-2 items-center self-end sm:self-auto">
+                            <span class="inline-flex bg-white text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded uppercase shadow-sm">
+                                ${currentLeaderboardData.length} Data
+                            </span>
+                            <button onclick="exportTableToCSV()" class="inline-flex items-center justify-center px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded uppercase shadow-sm hover:bg-slate-700 transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Eksport CSV
+                            </button>
+                        </div>
                     </div>
                     <!-- Kelas max-h-[400px] dan overflow-y-auto memberikan fungsi tatalan yang menghadkan paparan kepada ~10 baris pertama -->
                     <div class="max-h-[400px] overflow-y-auto relative">
@@ -343,8 +429,8 @@
                                 <tr>
                                     <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Ked.</th>
                                     <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Entiti Sekolah</th>
-                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Jumlah ID</th>
-                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Pernah Login</th>
+                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Jumlah ID Terlibat</th>
+                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">${metricColumnTitle}</th>
                                     <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Peratusan</th>
                                 </tr>
                             </thead>
@@ -357,16 +443,79 @@
             `;
         }
 
+        // Fungsi Teras Eksport CSV (Server-less)
+        function exportTableToCSV() {
+            if (!currentLeaderboardData || currentLeaderboardData.length === 0) {
+                alert("Tiada data untuk dieksport.");
+                return;
+            }
+            
+            const filterNamesMap = {
+                'keseluruhan': 'Keseluruhan',
+                'murid': 'Murid',
+                'guru': 'Guru',
+                'sekolah': 'Sekolah',
+                'aktif': 'Aktif_Log_Masuk',
+                'tidak_aktif': 'Tidak_Aktif',
+                'belum_login': 'Belum_Login'
+            };
+
+            const columnNames = {
+                'keseluruhan': 'Pernah Login',
+                'murid': 'Pernah Login',
+                'guru': 'Pernah Login',
+                'sekolah': 'Pernah Login',
+                'aktif': 'Aktif Login',
+                'tidak_aktif': 'Tidak Aktif',
+                'belum_login': 'Belum Login'
+            };
+            const metricColumnTitle = columnNames[currentFilterType];
+            
+            // Format Pengepala CSV
+            let csvContent = `Kedudukan,Nama Sekolah,Kod Sekolah,Jenis Sekolah,Jumlah ID,${metricColumnTitle},Peratusan (%)\n`;
+            
+            // Masukkan Baris Data
+            currentLeaderboardData.forEach((s, index) => {
+                // Kawalan Comma dalam Nama Sekolah
+                const cleanName = `"${s.namaSekolah.replace(/"/g, '""')}"`;
+                
+                const row = [
+                    index + 1,
+                    cleanName,
+                    s.kodSekolah,
+                    s.jenisSekolah,
+                    s.mappedTotal,
+                    s.metricCount,
+                    s.percentage.toFixed(2)
+                ];
+                
+                csvContent += row.join(",") + "\n";
+            });
+
+            // Logik Fail dan Muat Turun
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            const dateStr = new Date().toISOString().split('T')[0];
+            const fileName = `Prestasi_DELIMa_${filterNamesMap[currentFilterType]}_${dateStr}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         // Fungsi sokongan untuk membolehkan klik pada jadual menavigasi ke paparan sekolah tersebut
         function simulateSchoolSearch(schoolName) {
             const input = document.getElementById('searchInput');
             input.value = schoolName;
             
             // Pencetus manual input event
-            const event = new Event('input', {
-                bubbles: true,
-                cancelable: true,
-            });
+            const event = new Event('input', { bubbles: true, cancelable: true });
             input.dispatchEvent(event);
             
             // Mencari dan mengaktifkan pilihan pertama
@@ -411,6 +560,9 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('dashboardSchoolView').classList.add('hidden');
             document.getElementById('dashboardOverallView').classList.remove('hidden');
+            
+            // Kembalikan jadual ke paparan keseluruhan secara automatik jika perlu
+            // applyLeaderboardFilter('keseluruhan');
         }
 
         /**
@@ -420,6 +572,22 @@
             const container = document.getElementById(containerId);
             container.innerHTML = ''; // Kosongkan kontena
 
+            const isOverallView = containerId === 'overallMetricsContainer';
+            
+            // Kelas CSS interaktif HANYA jika ini paparan keseluruhan (supaya filter berfungsi)
+            const baseCardClass = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col";
+            const interactiveClass = isOverallView ? " cursor-pointer hover:ring-2 hover:ring-blue-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1" : "";
+            
+            // Pencetus Onclick
+            const clickKeseluruhan = isOverallView ? `onclick="applyLeaderboardFilter('keseluruhan')"` : "";
+            const clickAktif = isOverallView ? `onclick="applyLeaderboardFilter('aktif')"` : "";
+            const clickTidakAktif = isOverallView ? `onclick="applyLeaderboardFilter('tidak_aktif')"` : "";
+            const clickBelumLogin = isOverallView ? `onclick="applyLeaderboardFilter('belum_login')"` : "";
+            
+            const clickMurid = isOverallView ? `onclick="applyLeaderboardFilter('murid')"` : "";
+            const clickGuru = isOverallView ? `onclick="applyLeaderboardFilter('guru')"` : "";
+            const clickSekolah = isOverallView ? `onclick="applyLeaderboardFilter('sekolah')"` : "";
+
             // Fungsi utiliti untuk format nombor
             const f = (num) => new Intl.NumberFormat('ms-MY').format(num || 0);
             const calcPct = (part, total) => total > 0 ? ((part / total) * 100).toFixed(1) : "0.0";
@@ -428,25 +596,26 @@
             const htmlStructure = `
                 <!-- Kad Utama (Jumlah Keseluruhan Akaun) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 border-l-4 border-l-blue-600">
+                    <!-- Kad Keseluruhan juga dijadikan Filter -->
+                    <div ${clickKeseluruhan} class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 border-l-4 border-l-blue-600 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk papar Semua Data">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Akaun</p>
                         <h3 class="text-3xl font-extrabold text-slate-800">${f(dataObj.jumlahAkaun)}</h3>
                     </div>
-                    <div class="bg-emerald-50 rounded-xl shadow-sm border border-emerald-100 p-5">
+                    <div ${clickAktif} class="bg-emerald-50 rounded-xl shadow-sm border border-emerald-100 p-5 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-emerald-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk tapis Papan Pendahulu">
                         <div class="flex justify-between items-start">
                             <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Aktif Log Masuk</p>
                             <span class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">${calcPct(dataObj.jumlahAktif, dataObj.jumlahAkaun)}%</span>
                         </div>
                         <h3 class="text-2xl font-extrabold text-emerald-900">${f(dataObj.jumlahAktif)}</h3>
                     </div>
-                    <div class="bg-rose-50 rounded-xl shadow-sm border border-rose-100 p-5">
+                    <div ${clickTidakAktif} class="bg-rose-50 rounded-xl shadow-sm border border-rose-100 p-5 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-rose-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk tapis Papan Pendahulu">
                         <div class="flex justify-between items-start">
                             <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-1">Tidak Aktif (>90 Hari)</p>
                             <span class="bg-rose-200 text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded">${calcPct(dataObj.jumlahTidakAktif, dataObj.jumlahAkaun)}%</span>
                         </div>
                         <h3 class="text-2xl font-extrabold text-rose-900">${f(dataObj.jumlahTidakAktif)}</h3>
                     </div>
-                    <div class="bg-amber-50 rounded-xl shadow-sm border border-amber-100 p-5">
+                    <div ${clickBelumLogin} class="bg-amber-50 rounded-xl shadow-sm border border-amber-100 p-5 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-amber-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk tapis Papan Pendahulu">
                         <div class="flex justify-between items-start">
                             <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">Belum Pernah Login</p>
                             <span class="bg-amber-200 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">${calcPct(dataObj.jumlahBelumLogin, dataObj.jumlahAkaun)}%</span>
@@ -459,7 +628,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     
                     <!-- KAD MURID -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div ${clickMurid} class="${baseCardClass}${interactiveClass}" title="Klik untuk tapis Papan Pendahulu">
                         <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
                             <h4 class="font-bold text-slate-800 uppercase tracking-wide text-sm">Akaun Murid</h4>
                             <span class="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-2 py-1 rounded shadow-sm">${f(dataObj.muridKeseluruhan)}</span>
@@ -472,7 +641,7 @@
                     </div>
 
                     <!-- KAD GURU -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div ${clickGuru} class="${baseCardClass}${interactiveClass}" title="Klik untuk tapis Papan Pendahulu">
                         <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
                             <h4 class="font-bold text-slate-800 uppercase tracking-wide text-sm">Akaun Guru</h4>
                             <span class="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-2 py-1 rounded shadow-sm">${f(dataObj.guruKeseluruhan)}</span>
@@ -485,7 +654,7 @@
                     </div>
 
                     <!-- KAD SEKOLAH (PENTADBIRAN) -->
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div ${clickSekolah} class="${baseCardClass}${interactiveClass}" title="Klik untuk tapis Papan Pendahulu">
                         <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
                             <h4 class="font-bold text-slate-800 uppercase tracking-wide text-sm">Akaun Sekolah</h4>
                             <span class="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-2 py-1 rounded shadow-sm">${f(dataObj.sekolahKeseluruhan)}</span>
