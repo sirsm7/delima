@@ -92,7 +92,14 @@ function toggleSearchState(state, errorMsg = '') {
  */
 async function executeUserSearch(e) {
     e.preventDefault();
-    if (!window.activeSchoolCode) return; // Ensure school context is active
+    
+    // PEMBAIKAN PEPIJAT KRITIKAL: 
+    // Akses terus kepada memori 'activeSchoolCode' tanpa awalan 'window.' 
+    // Ini kerana ia diisytiharkan sebagai 'let' dalam dashboard.js
+    if (typeof activeSchoolCode === 'undefined' || !activeSchoolCode) {
+        toggleSearchState('error', 'Ralat Konteks: Sila pilih sekolah dari carian utama terlebih dahulu.');
+        return;
+    }
     
     const query = document.getElementById('sm_searchInput').value.trim();
     if (query.length < 3) {
@@ -102,8 +109,8 @@ async function executeUserSearch(e) {
 
     toggleSearchState('loading');
 
-    // Call Supabase API Engine (from api.js)
-    const response = await API.searchUsers(window.activeSchoolCode, query);
+    // Memanggil Enjin API Supabase (dari api.js)
+    const response = await API.searchUsers(activeSchoolCode, query);
 
     if (!response.success) {
         toggleSearchState('error', response.message || 'Ralat memproses carian daripada pelayan Supabase.');
