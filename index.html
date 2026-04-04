@@ -138,6 +138,11 @@
                         <p class="text-sm font-medium text-slate-500 mt-1">Kod Sekolah: <span id="sv_kodSekolah" class="text-slate-700">KOD</span></p>
                     </div>
                     <div class="flex gap-2 w-full md:w-auto">
+                        <!-- BUTANG ENJIN CARIAN DALAMAN SEKOLAH -->
+                        <button onclick="openSearchModal()" class="flex-1 md:flex-none inline-flex justify-center items-center px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 text-sm font-bold rounded-lg hover:bg-blue-100 transition-colors shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            Cari ID
+                        </button>
                         <a id="sv_pautan" href="#" target="_blank" class="flex-1 md:flex-none inline-flex justify-center items-center px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold rounded-lg hover:bg-emerald-100 transition-colors shadow-sm hidden">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             Pautan Data
@@ -157,6 +162,65 @@
         
     </main>
 
+    <!-- MODAL CARIAN PENGGUNA (DISEMBUNYIKAN LALAI) -->
+    <div id="userSearchModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden transform scale-95 transition-transform duration-300" id="userSearchModalContent">
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-800">Carian Pengguna Sekolah</h3>
+                    <p class="text-xs font-semibold text-slate-500 mt-0.5">Cari ID berdasarkan Nama atau Emel bagi: <span id="sm_schoolName" class="text-blue-600 uppercase font-bold"></span></p>
+                </div>
+                <button onclick="closeSearchModal()" class="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-2 rounded-full transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Input Carian -->
+            <div class="p-6 border-b border-slate-200">
+                <form id="searchUserForm" onsubmit="executeUserSearch(event)" class="relative">
+                    <input type="text" id="sm_searchInput" 
+                           class="w-full pl-12 pr-24 py-3 border-2 border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-0 transition-colors uppercase font-bold text-slate-800" 
+                           placeholder="Taip Nama atau Emel (Min 3 Aksara)..." 
+                           autocomplete="off">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg class="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <button type="submit" id="sm_searchBtn" class="absolute inset-y-2 right-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-center min-w-[80px]">
+                        Cari
+                    </button>
+                </form>
+            </div>
+
+            <!-- Hasil Carian -->
+            <div class="flex-grow overflow-y-auto p-0 bg-slate-50 relative" id="sm_resultsContainer">
+                <div id="sm_initialState" class="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="text-sm font-medium text-slate-500">Sila masukkan kata kunci untuk mula membuat carian rekod pengguna pada pangkalan data pelayan.</p>
+                </div>
+                
+                <div id="sm_loadingState" class="hidden flex-col items-center justify-center py-16 text-center px-6">
+                    <div class="spinner mb-3" style="width: 32px; height: 32px; border-width: 3px;"></div>
+                    <p class="text-sm font-bold text-slate-600">Menghubungi Pangkalan Data...</p>
+                </div>
+
+                <div id="sm_errorState" class="hidden flex-col items-center justify-center py-16 text-center px-6">
+                    <svg class="w-12 h-12 text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p id="sm_errorText" class="text-sm font-bold text-red-600">Ralat berlaku.</p>
+                </div>
+
+                <!-- Kontena Senarai Hasil -->
+                <ul id="sm_resultsList" class="hidden divide-y divide-slate-200">
+                    <!-- Item akan dijana di sini -->
+                </ul>
+            </div>
+            
+            <div class="bg-white px-6 py-3 border-t border-slate-200 text-right text-xs font-semibold text-slate-500" id="sm_footerStatus">
+                Pencarian Server-Side aktif.
+            </div>
+        </div>
+    </div>
+
     <footer class="bg-white border-t border-slate-200 mt-auto">
         <div class="max-w-7xl mx-auto px-4 py-6 text-center text-xs font-medium text-slate-500">
             USTP PPD Alor Gajah &copy; 2026 Dashboard ID DELIMa
@@ -174,6 +238,7 @@
         let globalData = null;
         let currentLeaderboardData = []; // Data jadual yang sedang aktif untuk fungsi eksport
         let currentFilterType = 'keseluruhan'; // Penapis aktif
+        let activeSchoolCode = null; // Memori ID Sekolah untuk carian pengguna
 
         // Inisialisasi sebaik sahaja DOM sedia
         document.addEventListener('DOMContentLoaded', () => {
@@ -533,6 +598,10 @@
             document.getElementById('autocompleteDropdown').classList.add('hidden');
             document.getElementById('searchInput').value = schoolData.namaSekolah;
 
+            // Simpan Kod Sekolah Aktif untuk Enjin Carian
+            activeSchoolCode = schoolData.kodSekolah;
+            document.getElementById('sm_schoolName').innerText = schoolData.namaSekolah;
+
             // Kemas Kini Pengepala Sekolah
             document.getElementById('sv_namaSekolah').innerText = schoolData.namaSekolah;
             document.getElementById('sv_kodSekolah').innerText = schoolData.kodSekolah;
@@ -560,6 +629,7 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('dashboardSchoolView').classList.add('hidden');
             document.getElementById('dashboardOverallView').classList.remove('hidden');
+            activeSchoolCode = null; // Kosongkan memori carian apabila kembali
             
             // Kembalikan jadual ke paparan keseluruhan secara automatik jika perlu
             // applyLeaderboardFilter('keseluruhan');
@@ -690,6 +760,164 @@
                     </div>
                 </div>
             `;
+        }
+
+        /**
+         * FASA 6: ENJIN CARIAN PENGGUNA (API SERVER-SIDE)
+         */
+        function openSearchModal() {
+            const modal = document.getElementById('userSearchModal');
+            const modalContent = document.getElementById('userSearchModalContent');
+            const input = document.getElementById('sm_searchInput');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Animasi Transisi Halus (Micro-interaction)
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                input.focus();
+            }, 10);
+        }
+
+        function closeSearchModal() {
+            const modal = document.getElementById('userSearchModal');
+            const modalContent = document.getElementById('userSearchModalContent');
+            
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                // Reset state kembali ke asal
+                document.getElementById('sm_searchInput').value = '';
+                toggleSearchState('initial');
+            }, 300);
+        }
+
+        function toggleSearchState(state, errorMsg = '') {
+            // Sembunyikan semua lapisan (layer)
+            document.getElementById('sm_initialState').classList.add('hidden');
+            document.getElementById('sm_loadingState').classList.add('hidden');
+            document.getElementById('sm_errorState').classList.add('hidden');
+            document.getElementById('sm_resultsList').classList.add('hidden');
+            
+            document.getElementById('sm_initialState').classList.remove('flex');
+            document.getElementById('sm_loadingState').classList.remove('flex');
+            document.getElementById('sm_errorState').classList.remove('flex');
+            
+            const btn = document.getElementById('sm_searchBtn');
+            const input = document.getElementById('sm_searchInput');
+
+            // Kawalan Paparan Berdasarkan Status Permintaan
+            if (state === 'initial') {
+                document.getElementById('sm_initialState').classList.add('flex');
+                document.getElementById('sm_initialState').classList.remove('hidden');
+                document.getElementById('sm_footerStatus').innerText = 'Pencarian Server-Side aktif.';
+                btn.disabled = false;
+                input.disabled = false;
+                btn.innerText = 'Cari';
+            } else if (state === 'loading') {
+                document.getElementById('sm_loadingState').classList.add('flex');
+                document.getElementById('sm_loadingState').classList.remove('hidden');
+                btn.disabled = true;
+                input.disabled = true;
+                btn.innerHTML = '<div class="spinner h-4 w-4 border-2 border-white border-t-transparent mx-auto"></div>';
+            } else if (state === 'error') {
+                document.getElementById('sm_errorState').classList.add('flex');
+                document.getElementById('sm_errorState').classList.remove('hidden');
+                document.getElementById('sm_errorText').innerText = errorMsg;
+                btn.disabled = false;
+                input.disabled = false;
+                btn.innerText = 'Cari';
+            } else if (state === 'results') {
+                document.getElementById('sm_resultsList').classList.remove('hidden');
+                btn.disabled = false;
+                input.disabled = false;
+                btn.innerText = 'Cari';
+            }
+        }
+
+        async function executeUserSearch(e) {
+            e.preventDefault();
+            if (!activeSchoolCode) return;
+            
+            const query = document.getElementById('sm_searchInput').value.trim();
+            if (query.length < 3) {
+                toggleSearchState('error', 'Sila masukkan sekurang-kurangnya 3 aksara untuk carian yang tepat.');
+                return;
+            }
+
+            toggleSearchState('loading');
+
+            try {
+                // Membina URL API dengan parameter action=search & sanitasi URI
+                const searchUrl = `${GAS_API_URL}?action=search&schoolCode=${encodeURIComponent(activeSchoolCode)}&query=${encodeURIComponent(query)}`;
+                
+                const response = await fetch(searchUrl);
+                if (!response.ok) throw new Error("Gagal menghubungi pelayan rangkaian.");
+                
+                const jsonResponse = await response.json();
+                
+                if (!jsonResponse.success) {
+                    throw new Error(jsonResponse.message || "Ralat memproses carian daripada pelayan.");
+                }
+
+                renderSearchResults(jsonResponse.results);
+                document.getElementById('sm_footerStatus').innerText = `Enjin menjumpai ${jsonResponse.count} rekod padanan yang disahkan.`;
+
+            } catch (error) {
+                toggleSearchState('error', error.message);
+            }
+        }
+
+        function renderSearchResults(results) {
+            const listContainer = document.getElementById('sm_resultsList');
+            listContainer.innerHTML = '';
+
+            if (!results || results.length === 0) {
+                toggleSearchState('error', 'Tiada rekod pengguna dijumpai yang sepadan dengan kata kunci carian ini.');
+                return;
+            }
+
+            // Membina baris UI untuk setiap pengguna
+            results.forEach(user => {
+                // Algoritma Kod Warna Visual mengikut Status Mutlak
+                let statusColorClass = '';
+                if (user.status === 'AKTIF') {
+                    statusColorClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                } else if (user.status === 'BELUM LOGIN') {
+                    statusColorClass = 'bg-amber-100 text-amber-800 border-amber-200';
+                } else if (user.status === 'DIGANTUNG') {
+                    statusColorClass = 'bg-slate-200 text-slate-800 border-slate-300';
+                } else {
+                    // Lalai: AKAUN TIDAK AKTIF (>90 Hari)
+                    statusColorClass = 'bg-rose-100 text-rose-800 border-rose-200'; 
+                }
+
+                const li = document.createElement('li');
+                li.className = 'px-6 py-4 hover:bg-blue-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+                
+                li.innerHTML = `
+                    <div class="flex-grow min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bg-blue-100 text-blue-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">${user.kategori}</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-900 uppercase truncate" title="${user.nama}">${user.nama}</h4>
+                        <p class="text-xs font-semibold text-slate-500 truncate" title="${user.emel}">${user.emel}</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center justify-center px-3 py-1 text-[10px] font-extrabold rounded-full border uppercase tracking-wide ${statusColorClass}">
+                            ${user.status}
+                        </span>
+                    </div>
+                `;
+                listContainer.appendChild(li);
+            });
+
+            toggleSearchState('results');
         }
 
     </script>
