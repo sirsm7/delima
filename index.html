@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Papan Pemuka Analitik PPD</title>
     
-    <!-- FAVICON SUNTIKAN BERDASARKAN LOGO DRIVE -->
+    <!-- FAVICON -->
     <link rel="icon" href="https://drive.google.com/thumbnail?id=18VTHEYDgvec8VXeyp53EMi8xB2r796F0&sz=w128" type="image/png">
     
     <!-- Tailwind CSS (CDN) -->
@@ -16,37 +16,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* Slate 50 */
-        }
-        
-        /* Spinner Animasi */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border-left-color: #2563eb;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* Glassmorphism Effect untuk Header */
-        .glass-header {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-        }
-    </style>
+    <!-- FAIL GAYAAN LUARAN (SoC) -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
@@ -54,11 +25,6 @@
     <header class="glass-header sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <!-- 
-                  PEMBAIKAN LOGO: 
-                  1. Menggunakan Endpoint Thumbnail Google Drive (&sz=w500 untuk resolusi optimum).
-                  2. Menambah Fallback onerror dengan imej fail SVG Base64 jika Drive disekat CORS. 
-                -->
                 <img src="https://drive.google.com/thumbnail?id=18VTHEYDgvec8VXeyp53EMi8xB2r796F0&sz=w500" 
                      alt="Logo PPD" 
                      class="h-12 w-auto object-contain"
@@ -80,11 +46,11 @@
         <!-- STATUS LOADING -->
         <div id="loadingState" class="flex flex-col items-center justify-center py-20">
             <div class="spinner mb-4"></div>
-            <h2 class="text-lg font-bold text-slate-700">Sedang Mengekstrak Data</h2>
+            <h2 class="text-lg font-bold text-slate-700">Menyegerak Data Supabase</h2>
             <p class="text-sm text-slate-500 mt-1">Sila tunggu sebentar, sistem sedang menghubungi pangkalan pelayan...</p>
         </div>
 
-        <!-- APP CONTAINER (Disembunyikan semasa loading) -->
+        <!-- APP CONTAINER -->
         <div id="appContainer" class="hidden">
             
             <!-- SECTION 1: KOTAK CARIAN SEKOLAH -->
@@ -103,7 +69,7 @@
                            
                     <!-- DROPDOWN AUTOCOMPLETE -->
                     <div id="autocompleteDropdown" class="absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto hidden z-50">
-                        <!-- Senarai akan dijana oleh JavaScript -->
+                        <!-- Dijana oleh JavaScript -->
                     </div>
                 </div>
             </div>
@@ -119,10 +85,7 @@
                 
                 <p class="text-sm text-slate-500 italic mb-[-1rem]">Tip: Klik pada mana-mana kad metrik di bawah untuk menapis Papan Pendahulu secara automatik.</p>
                 
-                <!-- Kontena Utama Metrik akan disuntik di sini -->
                 <div id="overallMetricsContainer"></div>
-
-                <!-- Kontena Papan Pendahulu Sekolah (Jadual) akan disuntik di sini -->
                 <div id="leaderboardContainer" class="mt-8"></div>
             </div>
 
@@ -138,8 +101,7 @@
                         <p class="text-sm font-medium text-slate-500 mt-1">Kod Sekolah: <span id="sv_kodSekolah" class="text-slate-700">KOD</span></p>
                     </div>
                     <div class="flex gap-2 w-full md:w-auto">
-                        <!-- BUTANG ENJIN CARIAN DALAMAN SEKOLAH -->
-                        <button onclick="openSearchModal()" class="flex-1 md:flex-none inline-flex justify-center items-center px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 text-sm font-bold rounded-lg hover:bg-blue-100 transition-colors shadow-sm">
+                        <button id="btnBukaCarianId" class="flex-1 md:flex-none inline-flex justify-center items-center px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 text-sm font-bold rounded-lg hover:bg-blue-100 transition-colors shadow-sm">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             Cari ID
                         </button>
@@ -147,22 +109,20 @@
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             Pautan Data
                         </a>
-                        <button onclick="resetToOverallView()" class="flex-1 md:flex-none inline-flex justify-center items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-bold rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+                        <button id="btnTutupPaparan" class="flex-1 md:flex-none inline-flex justify-center items-center px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-bold rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             Tutup Paparan
                         </button>
                     </div>
                 </div>
                 
-                <!-- Kontena Spesifik Metrik akan disuntik di sini -->
                 <div id="schoolMetricsContainer"></div>
             </div>
 
-        </div> <!-- End App Container -->
-        
+        </div> 
     </main>
 
-    <!-- MODAL CARIAN PENGGUNA (DISEMBUNYIKAN LALAI) -->
+    <!-- MODAL CARIAN PENGGUNA -->
     <div id="userSearchModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 transition-opacity opacity-0">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden transform scale-95 transition-transform duration-300" id="userSearchModalContent">
             <!-- Header Modal -->
@@ -171,14 +131,14 @@
                     <h3 class="text-lg font-extrabold text-slate-800">Carian Pengguna Sekolah</h3>
                     <p class="text-xs font-semibold text-slate-500 mt-0.5">Cari ID berdasarkan Nama atau Emel bagi: <span id="sm_schoolName" class="text-blue-600 uppercase font-bold"></span></p>
                 </div>
-                <button onclick="closeSearchModal()" class="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-2 rounded-full transition-colors">
+                <button id="btnTutupModal" class="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-2 rounded-full transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             
             <!-- Input Carian -->
             <div class="p-6 border-b border-slate-200">
-                <form id="searchUserForm" onsubmit="executeUserSearch(event)" class="relative">
+                <form id="searchUserForm" class="relative">
                     <input type="text" id="sm_searchInput" 
                            class="w-full pl-12 pr-24 py-3 border-2 border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-0 transition-colors uppercase font-bold text-slate-800" 
                            placeholder="Taip Nama atau Emel (Min 3 Aksara)..." 
@@ -196,12 +156,12 @@
             <div class="flex-grow overflow-y-auto p-0 bg-slate-50 relative" id="sm_resultsContainer">
                 <div id="sm_initialState" class="flex flex-col items-center justify-center py-16 text-center px-6">
                     <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="text-sm font-medium text-slate-500">Sila masukkan kata kunci untuk mula membuat carian rekod pengguna pada pangkalan data pelayan.</p>
+                    <p class="text-sm font-medium text-slate-500">Sila masukkan kata kunci untuk mula membuat carian rekod pengguna pada pangkalan data Supabase.</p>
                 </div>
                 
                 <div id="sm_loadingState" class="hidden flex-col items-center justify-center py-16 text-center px-6">
                     <div class="spinner mb-3" style="width: 32px; height: 32px; border-width: 3px;"></div>
-                    <p class="text-sm font-bold text-slate-600">Menghubungi Pangkalan Data...</p>
+                    <p class="text-sm font-bold text-slate-600">Mencari Data Supabase...</p>
                 </div>
 
                 <div id="sm_errorState" class="hidden flex-col items-center justify-center py-16 text-center px-6">
@@ -209,717 +169,29 @@
                     <p id="sm_errorText" class="text-sm font-bold text-red-600">Ralat berlaku.</p>
                 </div>
 
-                <!-- Kontena Senarai Hasil -->
                 <ul id="sm_resultsList" class="hidden divide-y divide-slate-200">
-                    <!-- Item akan dijana di sini -->
+                    <!-- Dijana di sini -->
                 </ul>
             </div>
             
             <div class="bg-white px-6 py-3 border-t border-slate-200 text-right text-xs font-semibold text-slate-500" id="sm_footerStatus">
-                Pencarian Server-Side aktif.
+                Pencarian REST API Supabase aktif.
             </div>
         </div>
     </div>
 
     <footer class="bg-white border-t border-slate-200 mt-auto">
         <div class="max-w-7xl mx-auto px-4 py-6 text-center text-xs font-medium text-slate-500">
-            USTP PPD Alor Gajah &copy; 2026 Dashboard ID DELIMa
+            USTP PPD Alor Gajah &copy; 2026 Dashboard ID DELIMa (Supabase Powered)
         </div>
     </footer>
 
-    <!-- LOGIK JAVASCRIPT MUTLAK -->
-    <script>
-        /**
-         * URL Mutlak Backend Google Apps Script
-         */
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyFH10xxy3k85cShpctkrpHLfflCMtGbDBn91bocve3pX_p7V3E55PQMi8XG9Mi7aZ5/exec";
-        
-        // Memori Global (Global State)
-        let globalData = null;
-        let currentLeaderboardData = []; // Data jadual yang sedang aktif untuk fungsi eksport
-        let currentFilterType = 'keseluruhan'; // Penapis aktif
-        let activeSchoolCode = null; // Memori ID Sekolah untuk carian pengguna
-
-        // Inisialisasi sebaik sahaja DOM sedia
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchBackendData();
-            setupSearchEngine();
-        });
-
-        /**
-         * FASA 1: Menarik Data dari API GAS
-         */
-        async function fetchBackendData() {
-            try {
-                const response = await fetch(GAS_API_URL);
-                if (!response.ok) throw new Error("Gagal menghubungi pelayan rangkaian.");
-                
-                const jsonResponse = await response.json();
-                
-                if (!jsonResponse.success) {
-                    throw new Error(jsonResponse.message || "Ralat dalam memproses data dari pangkalan.");
-                }
-
-                // Simpan ke memori global
-                globalData = jsonResponse;
-                
-                // Format Tarikh Kemas Kini
-                const dateObj = new Date(globalData.timestamp);
-                document.getElementById('lastUpdatedText').innerText = "Data Terkini: " + dateObj.toLocaleString('ms-MY');
-
-                // Bina UI Papan Pemuka Keseluruhan
-                buildMetricsUI(globalData.overall, 'overallMetricsContainer');
-
-                // Bina Papan Pendahulu Sekolah (Paparan lalai: Keseluruhan)
-                buildLeaderboardTable(globalData.schools, 'keseluruhan');
-                
-                // Sembunyikan Loader, Paparkan App
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('appContainer').classList.remove('hidden');
-
-            } catch (error) {
-                console.error(error);
-                document.getElementById('loadingState').innerHTML = `
-                    <div class="text-red-500 mb-4">
-                        <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h2 class="text-xl font-bold text-slate-800">Ralat Komunikasi API</h2>
-                    <p class="text-sm text-slate-500 mt-2">${error.message}</p>
-                    <button onclick="location.reload()" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-sm hover:bg-blue-700">Cuba Semula</button>
-                `;
-            }
-        }
-
-        /**
-         * FASA 2: Enjin Carian & Autocomplete
-         */
-        function setupSearchEngine() {
-            const input = document.getElementById('searchInput');
-            const dropdown = document.getElementById('autocompleteDropdown');
-
-            input.addEventListener('input', function(e) {
-                const query = e.target.value.toLowerCase().trim();
-                input.value = input.value.toUpperCase(); // Force uppercase visual
-                
-                // Logik memastikan carian aktif walaupun dengan 1 huruf
-                if (query.length === 0 || !globalData || !globalData.schools) {
-                    dropdown.classList.add('hidden');
-                    return;
-                }
-
-                // Penapis Data
-                const results = globalData.schools.filter(school => {
-                    return school.namaSekolah.toLowerCase().includes(query) || 
-                           school.kodSekolah.toLowerCase().includes(query);
-                });
-
-                renderDropdown(results, query);
-            });
-
-            // Tutup dropdown jika klik di luar
-            document.addEventListener('click', function(e) {
-                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.classList.add('hidden');
-                }
-            });
-        }
-
-        function renderDropdown(results, query) {
-            const dropdown = document.getElementById('autocompleteDropdown');
-            dropdown.innerHTML = '';
-
-            if (results.length === 0) {
-                dropdown.innerHTML = '<div class="p-4 text-sm text-red-500 font-semibold text-center bg-red-50">Tiada sekolah ditemui. Sila cuba kata kunci lain.</div>';
-            } else {
-                const limit = Math.min(results.length, 50); // Had paparan untuk prestasi
-                
-                for (let i = 0; i < limit; i++) {
-                    const s = results[i];
-                    const div = document.createElement('div');
-                    div.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors flex justify-between items-center';
-                    div.innerHTML = `
-                        <div class="truncate pr-4">
-                            <p class="text-sm font-bold text-slate-800 truncate">${s.namaSekolah}</p>
-                            <p class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">${s.jenisSekolah}</p>
-                        </div>
-                        <span class="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded border border-slate-200">${s.kodSekolah}</span>
-                    `;
-                    div.onclick = () => renderSchoolView(s);
-                    dropdown.appendChild(div);
-                }
-                
-                if (results.length > 50) {
-                    dropdown.innerHTML += `<div class="p-2 text-xs text-center font-medium text-slate-400 bg-slate-50 border-t border-slate-100">... dan ${results.length - 50} keputusan lain.</div>`;
-                }
-            }
-            dropdown.classList.remove('hidden');
-        }
-
-        /**
-         * FASA 3: Papan Pendahulu Dinamik (Penapis Kad) & Enjin Eksport CSV
-         */
-         
-        // Fungsi Pencetus dari Kad Metrik
-        function applyLeaderboardFilter(type) {
-            if (!globalData || !globalData.schools) return;
-            currentFilterType = type;
-            buildLeaderboardTable(globalData.schools, type);
-            
-            // Animasi scroll turun ke jadual
-            document.getElementById('leaderboardContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function buildLeaderboardTable(schools, filterType) {
-            const container = document.getElementById('leaderboardContainer');
-
-            // Set Pemetaan Data Berdasarkan Penapis (Filter)
-            let filteredSchools = [];
-
-            schools.forEach(s => {
-                let total = 0, metricCount = 0;
-                
-                // Pemetaan Dinamik berdasarkan Penapis Semasa
-                if (filterType === 'murid') {
-                    total = s.muridKeseluruhan || 0;
-                    metricCount = (s.muridAktif || 0) + (s.muridTidakAktif || 0);
-                } else if (filterType === 'guru') {
-                    total = s.guruKeseluruhan || 0;
-                    metricCount = (s.guruAktif || 0) + (s.guruTidakAktif || 0);
-                } else if (filterType === 'sekolah') {
-                    total = s.sekolahKeseluruhan || 0;
-                    metricCount = (s.sekolahAktif || 0) + (s.sekolahTidakAktif || 0);
-                } else if (filterType === 'aktif') {
-                    total = s.jumlahAkaun || 0;
-                    metricCount = s.jumlahAktif || 0;
-                } else if (filterType === 'tidak_aktif') {
-                    total = s.jumlahAkaun || 0;
-                    metricCount = s.jumlahTidakAktif || 0;
-                } else if (filterType === 'belum_login') {
-                    total = s.jumlahAkaun || 0;
-                    metricCount = s.jumlahBelumLogin || 0;
-                } else {
-                    // Default Keseluruhan
-                    total = s.jumlahAkaun || 0;
-                    metricCount = (s.jumlahAktif || 0) + (s.jumlahTidakAktif || 0);
-                }
-
-                // Logik Penapis Teras: HANYA sekolah yang ada ID bagi kategori tersebut akan dipaparkan (total > 0)
-                if (total > 0) {
-                    const percentage = (metricCount / total) * 100;
-                    // Simpan mapping nilai dinamik supaya mudah dieksport
-                    filteredSchools.push({ ...s, mappedTotal: total, metricCount, percentage });
-                }
-            });
-
-            // Susun secara Menurun (Descending)
-            currentLeaderboardData = filteredSchools.sort((a, b) => b.percentage - a.percentage); 
-
-            // Format Nama Penapis untuk Tajuk
-            const filterNames = {
-                'keseluruhan': 'Keseluruhan Akaun (Semua)',
-                'murid': 'Kategori Murid Sahaja',
-                'guru': 'Kategori Guru Sahaja',
-                'sekolah': 'Kategori Sekolah Sahaja',
-                'aktif': 'Status: Aktif Log Masuk',
-                'tidak_aktif': 'Status: Tidak Aktif (>90 Hari)',
-                'belum_login': 'Status: Belum Pernah Login'
-            };
-            const currentTitle = filterNames[filterType];
-
-            // Tajuk Lajur Dinamik untuk Jadual
-            const columnNames = {
-                'keseluruhan': 'Pernah Login',
-                'murid': 'Pernah Login',
-                'guru': 'Pernah Login',
-                'sekolah': 'Pernah Login',
-                'aktif': 'Aktif Login',
-                'tidak_aktif': 'Tidak Aktif',
-                'belum_login': 'Belum Login'
-            };
-            const metricColumnTitle = columnNames[filterType];
-
-            // Bina baris jadual
-            let tableRows = '';
-            if (currentLeaderboardData.length === 0) {
-                tableRows = `<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-slate-500 font-medium">Tiada data sekolah dijumpai untuk kategori ini.</td></tr>`;
-            } else {
-                currentLeaderboardData.forEach((s, index) => {
-                    const isTop3 = index < 3;
-                    const rankClass = isTop3 ? 'font-extrabold text-blue-600' : 'font-medium text-slate-500';
-                    
-                    tableRows += `
-                        <tr class="hover:bg-blue-50/50 transition-colors cursor-pointer group" onclick="simulateSchoolSearch('${s.namaSekolah}')">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm ${rankClass}">${index + 1}</td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${s.namaSekolah}</div>
-                                <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">${s.kodSekolah}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.mappedTotal)}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.metricCount)}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <span class="inline-flex items-center justify-center px-2.5 py-1 text-xs font-bold rounded shadow-sm border ${s.percentage >= 80 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : s.percentage >= 50 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-rose-50 border-rose-200 text-rose-700'}">
-                                    ${s.percentage.toFixed(1)}%
-                                </span>
-                            </td>
-                        </tr>
-                    `;
-                });
-            }
-
-            // Suntikan HTML ke dalam Container
-            container.innerHTML = `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
-                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-lg font-bold text-slate-800 tracking-tight">Prestasi Log Masuk Sekolah</h3>
-                                <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">${currentTitle}</span>
-                            </div>
-                            <p class="text-xs font-medium text-slate-500 mt-1">Hanya memaparkan sekolah yang mempunyai sekurang-kurangnya 1 ID bagi kategori ini.</p>
-                        </div>
-                        <div class="flex gap-2 items-center self-end sm:self-auto">
-                            <span class="inline-flex bg-white text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded uppercase shadow-sm">
-                                ${currentLeaderboardData.length} Data
-                            </span>
-                            <button onclick="exportTableToCSV()" class="inline-flex items-center justify-center px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded uppercase shadow-sm hover:bg-slate-700 transition-colors">
-                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                Eksport CSV
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Kelas max-h-[400px] dan overflow-y-auto memberikan fungsi tatalan yang menghadkan paparan kepada ~10 baris pertama -->
-                    <div class="max-h-[400px] overflow-y-auto relative">
-                        <table class="w-full text-left border-collapse min-w-[600px]">
-                            <thead class="bg-slate-100 sticky top-0 z-10 shadow-sm backdrop-blur-sm bg-opacity-95">
-                                <tr>
-                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Ked.</th>
-                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Entiti Sekolah</th>
-                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">Jumlah ID Terlibat</th>
-                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">${metricColumnTitle}</th>
-                                    <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Peratusan</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                ${tableRows}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Fungsi Teras Eksport CSV (Server-less)
-        function exportTableToCSV() {
-            if (!currentLeaderboardData || currentLeaderboardData.length === 0) {
-                alert("Tiada data untuk dieksport.");
-                return;
-            }
-            
-            const filterNamesMap = {
-                'keseluruhan': 'Keseluruhan',
-                'murid': 'Murid',
-                'guru': 'Guru',
-                'sekolah': 'Sekolah',
-                'aktif': 'Aktif_Log_Masuk',
-                'tidak_aktif': 'Tidak_Aktif',
-                'belum_login': 'Belum_Login'
-            };
-
-            const columnNames = {
-                'keseluruhan': 'Pernah Login',
-                'murid': 'Pernah Login',
-                'guru': 'Pernah Login',
-                'sekolah': 'Pernah Login',
-                'aktif': 'Aktif Login',
-                'tidak_aktif': 'Tidak Aktif',
-                'belum_login': 'Belum Login'
-            };
-            const metricColumnTitle = columnNames[currentFilterType];
-            
-            // Format Pengepala CSV
-            let csvContent = `Kedudukan,Nama Sekolah,Kod Sekolah,Jenis Sekolah,Jumlah ID,${metricColumnTitle},Peratusan (%)\n`;
-            
-            // Masukkan Baris Data
-            currentLeaderboardData.forEach((s, index) => {
-                // Kawalan Comma dalam Nama Sekolah
-                const cleanName = `"${s.namaSekolah.replace(/"/g, '""')}"`;
-                
-                const row = [
-                    index + 1,
-                    cleanName,
-                    s.kodSekolah,
-                    s.jenisSekolah,
-                    s.mappedTotal,
-                    s.metricCount,
-                    s.percentage.toFixed(2)
-                ];
-                
-                csvContent += row.join(",") + "\n";
-            });
-
-            // Logik Fail dan Muat Turun
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            
-            const dateStr = new Date().toISOString().split('T')[0];
-            const fileName = `Prestasi_DELIMa_${filterNamesMap[currentFilterType]}_${dateStr}.csv`;
-            
-            link.setAttribute("href", url);
-            link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Fungsi sokongan untuk membolehkan klik pada jadual menavigasi ke paparan sekolah tersebut
-        function simulateSchoolSearch(schoolName) {
-            const input = document.getElementById('searchInput');
-            input.value = schoolName;
-            
-            // Pencetus manual input event
-            const event = new Event('input', { bubbles: true, cancelable: true });
-            input.dispatchEvent(event);
-            
-            // Mencari dan mengaktifkan pilihan pertama
-            setTimeout(() => {
-                const firstOption = document.querySelector('#autocompleteDropdown > div');
-                if(firstOption) firstOption.click();
-            }, 50);
-        }
-
-        /**
-         * FASA 4: Transisi Paparan
-         */
-        function renderSchoolView(schoolData) {
-            // Tutup Dropdown dan kemas kini kotak carian
-            document.getElementById('autocompleteDropdown').classList.add('hidden');
-            document.getElementById('searchInput').value = schoolData.namaSekolah;
-
-            // Simpan Kod Sekolah Aktif untuk Enjin Carian
-            activeSchoolCode = schoolData.kodSekolah;
-            document.getElementById('sm_schoolName').innerText = schoolData.namaSekolah;
-
-            // Kemas Kini Pengepala Sekolah
-            document.getElementById('sv_namaSekolah').innerText = schoolData.namaSekolah;
-            document.getElementById('sv_kodSekolah').innerText = schoolData.kodSekolah;
-            document.getElementById('sv_jenis').innerText = schoolData.jenisSekolah || "LAIN-LAIN";
-            document.getElementById('sv_kodOu').innerText = "OU: " + (schoolData.kodOu || "TIADA");
-
-            // Butang Pautan
-            const pautanBtn = document.getElementById('sv_pautan');
-            if (schoolData.pautanRekod && schoolData.pautanRekod.startsWith('http')) {
-                pautanBtn.href = schoolData.pautanRekod;
-                pautanBtn.classList.remove('hidden');
-            } else {
-                pautanBtn.classList.add('hidden');
-            }
-
-            // Bina UI Metrik untuk Sekolah ini
-            buildMetricsUI(schoolData, 'schoolMetricsContainer');
-
-            // Togol Paparan (Sembunyi Overall, Papar Sekolah)
-            document.getElementById('dashboardOverallView').classList.add('hidden');
-            document.getElementById('dashboardSchoolView').classList.remove('hidden');
-        }
-
-        function resetToOverallView() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('dashboardSchoolView').classList.add('hidden');
-            document.getElementById('dashboardOverallView').classList.remove('hidden');
-            activeSchoolCode = null; // Kosongkan memori carian apabila kembali
-            
-            // Kembalikan jadual ke paparan keseluruhan secara automatik jika perlu
-            // applyLeaderboardFilter('keseluruhan');
-        }
-
-        /**
-         * FASA 5: Enjin Pembina UI Berpusat (Boleh diguna semula untuk Overall & Spesifik)
-         */
-        function buildMetricsUI(dataObj, containerId) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = ''; // Kosongkan kontena
-
-            const isOverallView = containerId === 'overallMetricsContainer';
-            
-            // Kelas CSS interaktif HANYA jika ini paparan keseluruhan (supaya filter berfungsi)
-            const baseCardClass = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col";
-            const interactiveClass = isOverallView ? " cursor-pointer hover:ring-2 hover:ring-blue-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1" : "";
-            
-            // Pencetus Onclick
-            const clickKeseluruhan = isOverallView ? `onclick="applyLeaderboardFilter('keseluruhan')"` : "";
-            const clickAktif = isOverallView ? `onclick="applyLeaderboardFilter('aktif')"` : "";
-            const clickTidakAktif = isOverallView ? `onclick="applyLeaderboardFilter('tidak_aktif')"` : "";
-            const clickBelumLogin = isOverallView ? `onclick="applyLeaderboardFilter('belum_login')"` : "";
-            
-            const clickMurid = isOverallView ? `onclick="applyLeaderboardFilter('murid')"` : "";
-            const clickGuru = isOverallView ? `onclick="applyLeaderboardFilter('guru')"` : "";
-            const clickSekolah = isOverallView ? `onclick="applyLeaderboardFilter('sekolah')"` : "";
-
-            // Fungsi utiliti untuk format nombor
-            const f = (num) => new Intl.NumberFormat('ms-MY').format(num || 0);
-            const calcPct = (part, total) => total > 0 ? ((part / total) * 100).toFixed(1) : "0.0";
-
-            // HTML Template Pokok
-            const htmlStructure = `
-                <!-- Kad Utama (Jumlah Keseluruhan Akaun) -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                    <!-- Kad Keseluruhan juga dijadikan Filter -->
-                    <div ${clickKeseluruhan} class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 border-l-4 border-l-blue-600 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-blue-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk papar Semua Data">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Akaun</p>
-                        <h3 class="text-3xl font-extrabold text-slate-800">${f(dataObj.jumlahAkaun)}</h3>
-                    </div>
-                    <div ${clickAktif} class="bg-emerald-50 rounded-xl shadow-sm border border-emerald-100 p-5 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-emerald-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk tapis Papan Pendahulu">
-                        <div class="flex justify-between items-start">
-                            <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Aktif Log Masuk</p>
-                            <span class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">${calcPct(dataObj.jumlahAktif, dataObj.jumlahAkaun)}%</span>
-                        </div>
-                        <h3 class="text-2xl font-extrabold text-emerald-900">${f(dataObj.jumlahAktif)}</h3>
-                    </div>
-                    <div ${clickTidakAktif} class="bg-rose-50 rounded-xl shadow-sm border border-rose-100 p-5 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-rose-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk tapis Papan Pendahulu">
-                        <div class="flex justify-between items-start">
-                            <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-1">Tidak Aktif (>90 Hari)</p>
-                            <span class="bg-rose-200 text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded">${calcPct(dataObj.jumlahTidakAktif, dataObj.jumlahAkaun)}%</span>
-                        </div>
-                        <h3 class="text-2xl font-extrabold text-rose-900">${f(dataObj.jumlahTidakAktif)}</h3>
-                    </div>
-                    <div ${clickBelumLogin} class="bg-amber-50 rounded-xl shadow-sm border border-amber-100 p-5 ${isOverallView ? 'cursor-pointer hover:ring-2 hover:ring-amber-400 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1' : ''}" title="Klik untuk tapis Papan Pendahulu">
-                        <div class="flex justify-between items-start">
-                            <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">Belum Pernah Login</p>
-                            <span class="bg-amber-200 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">${calcPct(dataObj.jumlahBelumLogin, dataObj.jumlahAkaun)}%</span>
-                        </div>
-                        <h3 class="text-2xl font-extrabold text-amber-900">${f(dataObj.jumlahBelumLogin)}</h3>
-                    </div>
-                </div>
-
-                <!-- Pecahan Kategori (Murid, Guru, Sekolah) -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    <!-- KAD MURID -->
-                    <div ${clickMurid} class="${baseCardClass}${interactiveClass}" title="Klik untuk tapis Papan Pendahulu">
-                        <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
-                            <h4 class="font-bold text-slate-800 uppercase tracking-wide text-sm">Akaun Murid</h4>
-                            <span class="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-2 py-1 rounded shadow-sm">${f(dataObj.muridKeseluruhan)}</span>
-                        </div>
-                        <div class="p-5 flex-grow space-y-4">
-                            ${generateProgressRow('Aktif', dataObj.muridAktif, dataObj.muridKeseluruhan, 'bg-emerald-500', 'text-emerald-700')}
-                            ${generateProgressRow('Tidak Aktif', dataObj.muridTidakAktif, dataObj.muridKeseluruhan, 'bg-rose-500', 'text-rose-700')}
-                            ${generateProgressRow('Belum Login', dataObj.muridBelumLogin, dataObj.muridKeseluruhan, 'bg-amber-500', 'text-amber-700')}
-                        </div>
-                    </div>
-
-                    <!-- KAD GURU -->
-                    <div ${clickGuru} class="${baseCardClass}${interactiveClass}" title="Klik untuk tapis Papan Pendahulu">
-                        <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
-                            <h4 class="font-bold text-slate-800 uppercase tracking-wide text-sm">Akaun Guru</h4>
-                            <span class="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-2 py-1 rounded shadow-sm">${f(dataObj.guruKeseluruhan)}</span>
-                        </div>
-                        <div class="p-5 flex-grow space-y-4">
-                            ${generateProgressRow('Aktif', dataObj.guruAktif, dataObj.guruKeseluruhan, 'bg-emerald-500', 'text-emerald-700')}
-                            ${generateProgressRow('Tidak Aktif', dataObj.guruTidakAktif, dataObj.guruKeseluruhan, 'bg-rose-500', 'text-rose-700')}
-                            ${generateProgressRow('Belum Login', dataObj.guruBelumLogin, dataObj.guruKeseluruhan, 'bg-amber-500', 'text-amber-700')}
-                        </div>
-                    </div>
-
-                    <!-- KAD SEKOLAH (PENTADBIRAN) -->
-                    <div ${clickSekolah} class="${baseCardClass}${interactiveClass}" title="Klik untuk tapis Papan Pendahulu">
-                        <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
-                            <h4 class="font-bold text-slate-800 uppercase tracking-wide text-sm">Akaun Sekolah</h4>
-                            <span class="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-2 py-1 rounded shadow-sm">${f(dataObj.sekolahKeseluruhan)}</span>
-                        </div>
-                        <div class="p-5 flex-grow space-y-4">
-                            ${generateProgressRow('Aktif', dataObj.sekolahAktif, dataObj.sekolahKeseluruhan, 'bg-emerald-500', 'text-emerald-700')}
-                            ${generateProgressRow('Tidak Aktif', dataObj.sekolahTidakAktif, dataObj.sekolahKeseluruhan, 'bg-rose-500', 'text-rose-700')}
-                            ${generateProgressRow('Belum Login', dataObj.sekolahBelumLogin, dataObj.sekolahKeseluruhan, 'bg-amber-500', 'text-amber-700')}
-                        </div>
-                    </div>
-
-                </div>
-            `;
-            
-            container.innerHTML = htmlStructure;
-        }
-
-        /**
-         * Utiliti Penjana Progress Bar Animasi untuk Pecahan Metrik
-         */
-        function generateProgressRow(label, count, total, barColorClass, textColorClass) {
-            const f = (num) => new Intl.NumberFormat('ms-MY').format(num || 0);
-            const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
-            
-            return `
-                <div>
-                    <div class="flex justify-between items-end mb-1">
-                        <span class="text-[10px] font-bold ${textColorClass} uppercase tracking-wider">${label}</span>
-                        <span class="text-xs font-bold text-slate-700">${f(count)} <span class="text-[10px] text-slate-400 font-normal">(${percentage}%)</span></span>
-                    </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div class="${barColorClass} h-2 rounded-full transition-all duration-1000 ease-out" style="width: ${percentage}%"></div>
-                    </div>
-                </div>
-            `;
-        }
-
-        /**
-         * FASA 6: ENJIN CARIAN PENGGUNA (API SERVER-SIDE)
-         */
-        function openSearchModal() {
-            const modal = document.getElementById('userSearchModal');
-            const modalContent = document.getElementById('userSearchModalContent');
-            const input = document.getElementById('sm_searchInput');
-            
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            
-            // Animasi Transisi Halus (Micro-interaction)
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modalContent.classList.remove('scale-95');
-                input.focus();
-            }, 10);
-        }
-
-        function closeSearchModal() {
-            const modal = document.getElementById('userSearchModal');
-            const modalContent = document.getElementById('userSearchModalContent');
-            
-            modal.classList.add('opacity-0');
-            modalContent.classList.add('scale-95');
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                // Reset state kembali ke asal
-                document.getElementById('sm_searchInput').value = '';
-                toggleSearchState('initial');
-            }, 300);
-        }
-
-        function toggleSearchState(state, errorMsg = '') {
-            // Sembunyikan semua lapisan (layer)
-            document.getElementById('sm_initialState').classList.add('hidden');
-            document.getElementById('sm_loadingState').classList.add('hidden');
-            document.getElementById('sm_errorState').classList.add('hidden');
-            document.getElementById('sm_resultsList').classList.add('hidden');
-            
-            document.getElementById('sm_initialState').classList.remove('flex');
-            document.getElementById('sm_loadingState').classList.remove('flex');
-            document.getElementById('sm_errorState').classList.remove('flex');
-            
-            const btn = document.getElementById('sm_searchBtn');
-            const input = document.getElementById('sm_searchInput');
-
-            // Kawalan Paparan Berdasarkan Status Permintaan
-            if (state === 'initial') {
-                document.getElementById('sm_initialState').classList.add('flex');
-                document.getElementById('sm_initialState').classList.remove('hidden');
-                document.getElementById('sm_footerStatus').innerText = 'Pencarian Server-Side aktif.';
-                btn.disabled = false;
-                input.disabled = false;
-                btn.innerText = 'Cari';
-            } else if (state === 'loading') {
-                document.getElementById('sm_loadingState').classList.add('flex');
-                document.getElementById('sm_loadingState').classList.remove('hidden');
-                btn.disabled = true;
-                input.disabled = true;
-                btn.innerHTML = '<div class="spinner h-4 w-4 border-2 border-white border-t-transparent mx-auto"></div>';
-            } else if (state === 'error') {
-                document.getElementById('sm_errorState').classList.add('flex');
-                document.getElementById('sm_errorState').classList.remove('hidden');
-                document.getElementById('sm_errorText').innerText = errorMsg;
-                btn.disabled = false;
-                input.disabled = false;
-                btn.innerText = 'Cari';
-            } else if (state === 'results') {
-                document.getElementById('sm_resultsList').classList.remove('hidden');
-                btn.disabled = false;
-                input.disabled = false;
-                btn.innerText = 'Cari';
-            }
-        }
-
-        async function executeUserSearch(e) {
-            e.preventDefault();
-            if (!activeSchoolCode) return;
-            
-            const query = document.getElementById('sm_searchInput').value.trim();
-            if (query.length < 3) {
-                toggleSearchState('error', 'Sila masukkan sekurang-kurangnya 3 aksara untuk carian yang tepat.');
-                return;
-            }
-
-            toggleSearchState('loading');
-
-            try {
-                // Membina URL API dengan parameter action=search & sanitasi URI
-                const searchUrl = `${GAS_API_URL}?action=search&schoolCode=${encodeURIComponent(activeSchoolCode)}&query=${encodeURIComponent(query)}`;
-                
-                const response = await fetch(searchUrl);
-                if (!response.ok) throw new Error("Gagal menghubungi pelayan rangkaian.");
-                
-                const jsonResponse = await response.json();
-                
-                if (!jsonResponse.success) {
-                    throw new Error(jsonResponse.message || "Ralat memproses carian daripada pelayan.");
-                }
-
-                renderSearchResults(jsonResponse.results);
-                document.getElementById('sm_footerStatus').innerText = `Enjin menjumpai ${jsonResponse.count} rekod padanan yang disahkan.`;
-
-            } catch (error) {
-                toggleSearchState('error', error.message);
-            }
-        }
-
-        function renderSearchResults(results) {
-            const listContainer = document.getElementById('sm_resultsList');
-            listContainer.innerHTML = '';
-
-            if (!results || results.length === 0) {
-                toggleSearchState('error', 'Tiada rekod pengguna dijumpai yang sepadan dengan kata kunci carian ini.');
-                return;
-            }
-
-            // Membina baris UI untuk setiap pengguna
-            results.forEach(user => {
-                // Algoritma Kod Warna Visual mengikut Status Mutlak
-                let statusColorClass = '';
-                if (user.status === 'AKTIF') {
-                    statusColorClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                } else if (user.status === 'BELUM LOGIN') {
-                    statusColorClass = 'bg-amber-100 text-amber-800 border-amber-200';
-                } else if (user.status === 'DIGANTUNG') {
-                    statusColorClass = 'bg-slate-200 text-slate-800 border-slate-300';
-                } else {
-                    // Lalai: AKAUN TIDAK AKTIF (>90 Hari)
-                    statusColorClass = 'bg-rose-100 text-rose-800 border-rose-200'; 
-                }
-
-                const li = document.createElement('li');
-                li.className = 'px-6 py-4 hover:bg-blue-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3';
-                
-                li.innerHTML = `
-                    <div class="flex-grow min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="bg-blue-100 text-blue-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">${user.kategori}</span>
-                        </div>
-                        <h4 class="text-sm font-bold text-slate-900 uppercase truncate" title="${user.nama}">${user.nama}</h4>
-                        <p class="text-xs font-semibold text-slate-500 truncate" title="${user.emel}">${user.emel}</p>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <span class="inline-flex items-center justify-center px-3 py-1 text-[10px] font-extrabold rounded-full border uppercase tracking-wide ${statusColorClass}">
-                            ${user.status}
-                        </span>
-                    </div>
-                `;
-                listContainer.appendChild(li);
-            });
-
-            toggleSearchState('results');
-        }
-
-    </script>
+    <!-- SKRIP LUARAN (SoC) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="search.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
