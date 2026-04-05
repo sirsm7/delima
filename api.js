@@ -13,20 +13,38 @@ const supabaseClient = supabase.createClient(
 
 const API = {
     /**
-     * FUNGSI 1: Menarik data metrik keseluruhan untuk Papan Pemuka
+     * FUNGSI 1: Menarik data metrik keseluruhan & Cantuman Data Daerah
      */
     async fetchDashboardData() {
         try {
-            // Mengambil semua data dari jadual delima_data_sekolah
-            // Penggunaan select('*') memastikan lajur 'daerah' turut diekstrak
-            const { data, error } = await supabaseClient
-                .from('delima_data_sekolah')
-                .select('*')
-                .order('jumlah_akaun', { ascending: false });
+            // Pelaksanaan 'Parallel Fetching' (Panggilan Serentak) untuk menjimatkan masa
+            // Jadual 1: delima_data_sekolah (Metrik Penuh)
+            // Jadual 2: smpid_sekolah_data (Hanya kod_sekolah & daerah untuk jimat bandwidth)
+            const [delimaRes, smpidRes] = await Promise.all([
+                supabaseClient
+                    .from('delima_data_sekolah')
+                    .select('*')
+                    .order('jumlah_akaun', { ascending: false }),
+                supabaseClient
+                    .from('smpid_sekolah_data')
+                    .select('kod_sekolah, daerah')
+            ]);
 
-            if (error) throw error;
+            // Tangkap ralat jika mana-mana panggilan gagal
+            if (delimaRes.error) throw delimaRes.error;
+            if (smpidRes.error) throw smpidRes.error;
+
+            // Membina Hash Map (Kamus) dari smpid_sekolah_data untuk kelajuan capaian O(1)
+            const daerahMap = {};
+            if (smpidRes.data) {
+                smpidRes.data.forEach(item => {
+                    if (item.kod_sekolah) {
+                        daerahMap[item.kod_sekolah] = item.daerah;
+                    }
+                });
+            }
             
-            // Format Respon Selari dengan Struktur Asal
+            // Cantumkan data (Cross-reference Join) dan Format Respon
             const result = {
                 success: true,
                 timestamp: new Date().toISOString(),
@@ -36,13 +54,15 @@ const API = {
                     guru_keseluruhan: 0, guru_aktif: 0, guru_tidak_aktif: 0, guru_belum_login: 0,
                     sekolah_keseluruhan: 0, sekolah_aktif: 0, sekolah_tidak_aktif: 0, sekolah_belum_login: 0
                 },
-                schools: data.map(school => {
-                    // PEMBAIKAN: Sanitasi data kolum daerah untuk keseragaman UI (trim & uppercase)
-                    // Jika tiada (null/kosong), tetapkan kepada label lalai
+                schools: delimaRes.data.map(school => {
+                    // Cari daerah menggunakan kod_sekolah di dalam Hash Map
+                    let rawDaerah = daerahMap[school.kod_sekolah];
+                    
+                    // Sanitasi data kolum daerah untuk keseragaman UI (trim & uppercase)
                     return {
                         ...school,
-                        daerah: (school.daerah && school.daerah.trim() !== '') 
-                            ? school.daerah.trim().toUpperCase() 
+                        daerah: (rawDaerah && rawDaerah.trim() !== '') 
+                            ? rawDaerah.trim().toUpperCase() 
                             : 'TIADA MAKLUMAT DAERAH'
                     };
                 })
