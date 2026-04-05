@@ -18,7 +18,8 @@ const APP_CONFIG = {
     SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzYzMzczNjQ1LCJleHAiOjIwNzg3MzM2NDV9.vZOedqJzUn01PjwfaQp7VvRzSm4aRMr21QblPDK8AoY",
 
     // 3. Nama Papan Pemuka (Untuk rujukan paparan)
-    DASHBOARD_TITLE: "Dashboard ID DELIMa PPD Alor Gajah"
+    // TELAH DIKEMASKINI KE PERINGKAT NEGERI
+    DASHBOARD_TITLE: "Dashboard ID DELIMa Jabatan Pendidikan Negeri"
 };
 
 // Mengelakkan manipulasi konfigurasi oleh skrip pihak ketiga (Pilihan Keselamatan)

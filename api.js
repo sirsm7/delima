@@ -18,6 +18,7 @@ const API = {
     async fetchDashboardData() {
         try {
             // Mengambil semua data dari jadual delima_data_sekolah
+            // Penggunaan select('*') memastikan lajur 'daerah' turut diekstrak
             const { data, error } = await supabaseClient
                 .from('delima_data_sekolah')
                 .select('*')
@@ -35,10 +36,19 @@ const API = {
                     guru_keseluruhan: 0, guru_aktif: 0, guru_tidak_aktif: 0, guru_belum_login: 0,
                     sekolah_keseluruhan: 0, sekolah_aktif: 0, sekolah_tidak_aktif: 0, sekolah_belum_login: 0
                 },
-                schools: data
+                schools: data.map(school => {
+                    // PEMBAIKAN: Sanitasi data kolum daerah untuk keseragaman UI (trim & uppercase)
+                    // Jika tiada (null/kosong), tetapkan kepada label lalai
+                    return {
+                        ...school,
+                        daerah: (school.daerah && school.daerah.trim() !== '') 
+                            ? school.daerah.trim().toUpperCase() 
+                            : 'TIADA MAKLUMAT DAERAH'
+                    };
+                })
             };
 
-            // Pengiraan Automatik (Aggregation) di Pihak Klien
+            // Pengiraan Automatik (Aggregation) di Pihak Klien untuk Keseluruhan Data (Negeri)
             const metrikTeras = [
                 'jumlah_akaun', 'jumlah_aktif', 'jumlah_tidak_aktif', 'jumlah_belum_login',
                 'murid_keseluruhan', 'murid_aktif', 'murid_tidak_aktif', 'murid_belum_login',
@@ -46,7 +56,7 @@ const API = {
                 'sekolah_keseluruhan', 'sekolah_aktif', 'sekolah_tidak_aktif', 'sekolah_belum_login'
             ];
 
-            data.forEach(school => {
+            result.schools.forEach(school => {
                 metrikTeras.forEach(key => {
                     result.overall[key] += (school[key] || 0);
                 });

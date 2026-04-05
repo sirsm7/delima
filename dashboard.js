@@ -143,6 +143,9 @@ function renderSchoolView(schoolData) {
     document.getElementById('sv_kodSekolah').innerText = schoolData.kod_sekolah;
     document.getElementById('sv_jenis').innerText = schoolData.jenis_sekolah || "LAIN-LAIN";
     document.getElementById('sv_kodOu').innerText = "OU: " + (schoolData.kod_ou || "TIADA");
+    
+    // PEMBAIKAN: Suntikan nama Daerah ke paparan spesifik sekolah
+    document.getElementById('sv_daerah').innerText = schoolData.daerah || "TIADA MAKLUMAT DAERAH";
 
     const pautanBtn = document.getElementById('sv_pautan');
     if (schoolData.pautan_rekod && schoolData.pautan_rekod.startsWith('http')) {
@@ -171,7 +174,11 @@ function resetToOverallView() {
 function applyLeaderboardFilter(type) {
     if (!window.globalData || !window.globalData.schools) return;
     currentFilterType = type;
-    buildLeaderboardTable(window.globalData.schools, type);
+    
+    // PEMBAIKAN: Gunakan senarai sekolah yang telah ditapis mengikut daerah (diuruskan dalam app.js)
+    const schoolsToRender = window.currentFilteredSchools || window.globalData.schools;
+    
+    buildLeaderboardTable(schoolsToRender, type);
     document.getElementById('leaderboardContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -225,7 +232,7 @@ function buildLeaderboardTable(schools, filterType) {
 
     let tableRows = '';
     if (currentLeaderboardData.length === 0) {
-        tableRows = `<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-slate-500 font-medium">Tiada data sekolah dijumpai.</td></tr>`;
+        tableRows = `<tr><td colspan="5" class="px-6 py-8 text-center text-sm text-slate-500 font-medium">Tiada data sekolah dijumpai untuk carian/penapis ini.</td></tr>`;
     } else {
         currentLeaderboardData.forEach((s, index) => {
             const isTop3 = index < 3;
@@ -236,7 +243,10 @@ function buildLeaderboardTable(schools, filterType) {
                     <td class="px-6 py-4 whitespace-nowrap text-sm ${rankClass}">${index + 1}</td>
                     <td class="px-6 py-4">
                         <div class="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">${s.nama_sekolah}</div>
-                        <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">${s.kod_sekolah}</div>
+                        <div class="text-[10px] font-semibold text-slate-500 mt-0.5">
+                            <span class="text-purple-600 font-bold uppercase tracking-wider">${s.daerah || 'TIADA DAERAH'}</span> &bull; 
+                            <span class="uppercase">${s.kod_sekolah}</span>
+                        </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.mappedTotal)}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-600">${new Intl.NumberFormat('ms-MY').format(s.metricCount)}</td>
@@ -295,11 +305,13 @@ function exportTableToCSV() {
     const filterNamesMap = { 'keseluruhan': 'Keseluruhan', 'murid': 'Murid', 'guru': 'Guru', 'sekolah': 'Sekolah', 'aktif': 'Aktif_Log_Masuk', 'tidak_aktif': 'Tidak_Aktif', 'belum_login': 'Belum_Login' };
     const columnNames = { 'keseluruhan': 'Pernah Login', 'murid': 'Pernah Login', 'guru': 'Pernah Login', 'sekolah': 'Pernah Login', 'aktif': 'Aktif Login', 'tidak_aktif': 'Tidak Aktif', 'belum_login': 'Belum Login' };
     
-    let csvContent = `Kedudukan,Nama Sekolah,Kod Sekolah,Jenis Sekolah,Jumlah ID,${columnNames[currentFilterType]},Peratusan (%)\n`;
+    // PEMBAIKAN: Penambahan lajur Daerah dalam struktur CSV
+    let csvContent = `Kedudukan,Daerah,Nama Sekolah,Kod Sekolah,Jenis Sekolah,Jumlah ID,${columnNames[currentFilterType]},Peratusan (%)\n`;
     
     currentLeaderboardData.forEach((s, index) => {
         const cleanName = `"${s.nama_sekolah.replace(/"/g, '""')}"`;
-        const row = [index + 1, cleanName, s.kod_sekolah, s.jenis_sekolah, s.mappedTotal, s.metricCount, s.percentage.toFixed(2)];
+        const cleanDaerah = `"${s.daerah || ''}"`;
+        const row = [index + 1, cleanDaerah, cleanName, s.kod_sekolah, s.jenis_sekolah, s.mappedTotal, s.metricCount, s.percentage.toFixed(2)];
         csvContent += row.join(",") + "\n";
     });
 
