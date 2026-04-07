@@ -62,7 +62,7 @@ function toggleSearchState(state, errorMsg = '') {
     if (state === 'initial') {
         document.getElementById('sm_initialState').classList.add('flex');
         document.getElementById('sm_initialState').classList.remove('hidden');
-        document.getElementById('sm_footerStatus').innerText = 'Supabase REST API search active.';
+        document.getElementById('sm_footerStatus').innerText = 'Pencarian REST API Supabase aktif.';
         btn.disabled = false;
         input.disabled = false;
         btn.innerText = 'Cari';
@@ -145,6 +145,10 @@ function renderSearchResults(results) {
             statusColorClass = 'bg-rose-100 text-rose-800 border-rose-200'; 
         }
 
+        // Keselamatan: Bersihkan aksara khusus untuk dimasukkan ke dalam elemen onclick JavaScript
+        const safeNama = user.nama ? user.nama.replace(/'/g, "\\'") : 'TIADA NAMA';
+        const safeEmel = user.emel ? user.emel.replace(/'/g, "\\'") : 'TIADA EMEL';
+
         const li = document.createElement('li');
         li.className = 'px-6 py-4 hover:bg-blue-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3';
         
@@ -153,10 +157,26 @@ function renderSearchResults(results) {
                 <div class="flex items-center gap-2 mb-1">
                     <span class="bg-blue-100 text-blue-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">${user.kategori}</span>
                 </div>
-                <h4 class="text-sm font-bold text-slate-900 uppercase truncate" title="${user.nama}">${user.nama}</h4>
-                <p class="text-xs font-semibold text-slate-500 truncate" title="${user.emel}">${user.emel}</p>
+                
+                <!-- Nama + Butang Salin -->
+                <div class="flex items-center gap-2">
+                    <h4 class="text-sm font-bold text-slate-900 uppercase truncate" title="${user.nama}">${user.nama}</h4>
+                    <button type="button" onclick="copyDataToClipboard('${safeNama}', this)" class="text-slate-400 hover:text-blue-600 transition-colors focus:outline-none" title="Salin Nama">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </button>
+                </div>
+                
+                <!-- Emel/ID + Butang Salin -->
+                <div class="flex items-center gap-2 mt-0.5">
+                    <p class="text-xs font-semibold text-slate-500 truncate" title="${user.emel}">${user.emel}</p>
+                    <button type="button" onclick="copyDataToClipboard('${safeEmel}', this)" class="text-slate-400 hover:text-emerald-600 transition-colors focus:outline-none" title="Salin Emel/ID">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </button>
+                </div>
             </div>
-            <div class="flex-shrink-0">
+            
+            <!-- Status Pill -->
+            <div class="flex-shrink-0 ml-0 sm:ml-4 mt-2 sm:mt-0">
                 <span class="inline-flex items-center justify-center px-3 py-1 text-[10px] font-extrabold rounded-full border uppercase tracking-wide ${statusColorClass}">
                     ${user.status}
                 </span>
@@ -167,6 +187,49 @@ function renderSearchResults(results) {
 
     toggleSearchState('results');
 }
+
+/**
+ * Utility Function: Copy Data to Clipboard
+ * Menggunakan pendekatan fail-safe (document.execCommand) bagi menjamin keserasian 
+ * dan mengatasi isu dasar keselamatan (CORS/iframe) untuk 'navigator.clipboard'.
+ */
+window.copyDataToClipboard = function(text, btnElement) {
+    if (!text) return;
+    
+    // Penciptaan elemen Textarea sementara secara tersembunyi
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        // Laksana arahan salin (copy)
+        const successful = document.execCommand('copy');
+        
+        if (successful) {
+            // Simpan ikon asal (Ikon Copy)
+            const originalIcon = btnElement.innerHTML;
+            
+            // Tukar kepada ikon tanda rait (Check) berwarna hijau sebagai maklum balas visual
+            btnElement.innerHTML = `<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            
+            // Kembalikan ke ikon asal selepas 2 saat
+            setTimeout(() => {
+                btnElement.innerHTML = originalIcon;
+            }, 2000);
+        }
+    } catch (err) {
+        console.error('Penyalinan data gagal:', err);
+    }
+    
+    // Buang elemen sementara dari DOM
+    document.body.removeChild(textArea);
+};
 
 /**
  * Attach Event Listeners on DOM Load
