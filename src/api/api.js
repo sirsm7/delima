@@ -121,5 +121,40 @@ const API = {
             console.error("Ralat Supabase (searchUsers):", err);
             return { success: false, message: err.message };
         }
+    },
+
+    /**
+     * FUNGSI 3: Carian Pengguna Global (Seluruh Negeri) dengan Result Capping
+     * Keselamatan: Tiada kod sekolah diperlukan, tetapi WAJIB diletakkan .limit(15) 
+     * bagi menghalang risiko kebocoran data berskala besar (Data Scraping).
+     */
+    async searchUsersGlobal(searchQuery) {
+        try {
+            // Carian merentas semua sekolah (.eq('kod_sekolah') dibuang)
+            const { data, error } = await supabaseClient
+                .from('delima_salinan_admin')
+                .select('nama_penuh, emel, kategori, status, kod_sekolah')
+                .or(`nama_penuh.ilike.%${searchQuery}%,emel.ilike.%${searchQuery}%`)
+                .limit(15); 
+
+            if (error) throw error;
+
+            // Pemetaan format untuk antaramuka pengguna
+            return {
+                success: true,
+                count: data.length,
+                results: data.map(item => ({
+                    nama: item.nama_penuh,
+                    emel: item.emel,
+                    kategori: item.kategori,
+                    status: item.status,
+                    kod_sekolah: item.kod_sekolah // Ekstra: Diperlukan UI untuk carian global
+                }))
+            };
+
+        } catch (err) {
+            console.error("Ralat Supabase (searchUsersGlobal):", err);
+            return { success: false, message: err.message };
+        }
     }
 };
