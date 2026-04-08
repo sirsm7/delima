@@ -1,0 +1,62 @@
+/*
+ * ==============================================================================
+ * SENI BINA SISTEM: DASHBOARD HIBRID
+ * FAIL: style.css (Gayaan Berpusat / Pemisahan Modul Mutlak)
+ * ==============================================================================
+ */
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc; /* Setara dengan Tailwind Slate 50 */
+}
+
+/* * ==============================================================================
+ * KOMPONEN 1: Spinner Animasi (Indikator Pemuatan)
+ * ==============================================================================
+ */
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border-left-color: #2563eb; /* Warna Tailwind Blue 600 */
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
+
+/* * ==============================================================================
+ * KOMPONEN 2: Custom Scrollbar (Antaramuka Pengguna Gred Industri)
+ * ==============================================================================
+ */
+::-webkit-scrollbar { 
+    width: 6px; 
+    height: 6px; 
+}
+
+::-webkit-scrollbar-track { 
+    background: #f1f5f9; /* Slate 100 */
+}
+
+::-webkit-scrollbar-thumb { 
+    background: #cbd5e1; /* Slate 300 */
+    border-radius: 10px; 
+}
+
+::-webkit-scrollbar-thumb:hover { 
+    background: #94a3b8; /* Slate 400 */
+}
+
+/* * ==============================================================================
+ * KOMPONEN 3: Kesan Glassmorphism (Header Navigasi Terapung)
+ * ==============================================================================
+ */
+.glass-header {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
