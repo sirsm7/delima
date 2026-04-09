@@ -51,6 +51,9 @@ async function initApp() {
         // Attach Global Event Listeners
         document.getElementById('btnTutupPaparan')?.addEventListener('click', resetToOverallView);
 
+        // PEMBAIKAN: Mulakan pemantauan pengguna aktif (Live Presence)
+        initializeLivePresence();
+
         // Transition UI from Loading to Ready State
         document.getElementById('loadingState').classList.add('hidden');
         document.getElementById('appContainer').classList.remove('hidden');
@@ -59,6 +62,34 @@ async function initApp() {
         console.error("Initialization Error:", error);
         displayCriticalError(error.message);
     }
+}
+
+/**
+ * Initialize Real-time Presence Indicator
+ */
+function initializeLivePresence() {
+    // Pastikan enjin API telah dikemas kini
+    if (typeof API.setupLivePresence !== 'function') return;
+
+    // Laksana callback apabila status kehadiran berubah
+    API.setupLivePresence((totalViewers) => {
+        const indicatorEl = document.getElementById('liveViewerIndicator');
+        const countEl = document.getElementById('liveViewerCount');
+        
+        if (indicatorEl && countEl) {
+            // Kemas kini angka dalam UI
+            countEl.innerText = totalViewers;
+            
+            // Logik Darjah Kebolehlihatan (Visibility)
+            if (totalViewers > 0) {
+                indicatorEl.classList.remove('hidden');
+                indicatorEl.classList.add('flex');
+            } else {
+                indicatorEl.classList.add('hidden');
+                indicatorEl.classList.remove('flex');
+            }
+        }
+    });
 }
 
 /**

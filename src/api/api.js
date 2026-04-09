@@ -156,5 +156,46 @@ const API = {
             console.error("Ralat Supabase (searchUsersGlobal):", err);
             return { success: false, message: err.message };
         }
+    },
+
+    /**
+     * FUNGSI 4: Pemantauan Pengguna Aktif (Live Presence via WebSocket)
+     * Menggunakan Supabase Realtime Channels untuk mengira sesi pelayar semasa.
+     */
+    setupLivePresence(onPresenceChangeCallback) {
+        try {
+            // Jana ID rawak bagi mewakili sesi unik pelayar web (browser session)
+            const sessionUUID = typeof crypto !== 'undefined' && crypto.randomUUID 
+                ? crypto.randomUUID() 
+                : 'user-' + Math.random().toString(36).substr(2, 9);
+            
+            // Cipta laluan (Channel) khas untuk pemantauan pengguna papan pemuka
+            const viewerChannel = supabaseClient.channel('dashboard-viewers');
+
+            viewerChannel
+                .on('presence', { event: 'sync' }, () => {
+                    const presenceState = viewerChannel.presenceState();
+                    // Kira jumlah UUID (peranti unik) yang bersambung ke channel
+                    const totalViewers = Object.keys(presenceState).length;
+                    
+                    // Salurkan jumlah ini ke fail UI (app.js)
+                    if (typeof onPresenceChangeCallback === 'function') {
+                        onPresenceChangeCallback(totalViewers);
+                    }
+                })
+                .subscribe(async (status) => {
+                    // Hanya rekod kehadiran apabila sambungan WebSocket berjaya ditegakkan
+                    if (status === 'SUBSCRIBED') {
+                        await viewerChannel.track({
+                            user: sessionUUID,
+                            online_at: new Date().toISOString()
+                        });
+                    }
+                });
+
+            return viewerChannel;
+        } catch (err) {
+            console.error("Ralat Supabase (setupLivePresence):", err);
+        }
     }
 };
