@@ -144,15 +144,13 @@ function renderSchoolView(schoolData) {
     document.getElementById('sv_jenis').innerText = schoolData.jenis_sekolah || "LAIN-LAIN";
     document.getElementById('sv_kodOu').innerText = "OU: " + (schoolData.kod_ou || "TIADA");
     
-    // PEMBAIKAN: Suntikan nama Daerah ke paparan spesifik sekolah
+    // Suntikan nama Daerah ke paparan spesifik sekolah
     document.getElementById('sv_daerah').innerText = schoolData.daerah || "TIADA MAKLUMAT DAERAH";
 
-    const pautanBtn = document.getElementById('sv_pautan');
-    if (schoolData.pautan_rekod && schoolData.pautan_rekod.startsWith('http')) {
-        pautanBtn.href = schoolData.pautan_rekod;
-        pautanBtn.classList.remove('hidden');
-    } else {
-        pautanBtn.classList.add('hidden');
+    // PEMBAIKAN KOD: Ikatan Acara (Event Binding) untuk Butang Eksport CSV
+    const exportBtn = document.getElementById('sv_exportBtn');
+    if (exportBtn) {
+        exportBtn.onclick = () => handleExportSchoolData(schoolData.kod_sekolah, schoolData.nama_sekolah);
     }
 
     buildMetricsUI(schoolData, 'schoolMetricsContainer');
@@ -175,7 +173,6 @@ function applyLeaderboardFilter(type) {
     if (!window.globalData || !window.globalData.schools) return;
     currentFilterType = type;
     
-    // PEMBAIKAN: Gunakan senarai sekolah yang telah ditapis mengikut daerah (diuruskan dalam app.js)
     const schoolsToRender = window.currentFilteredSchools || window.globalData.schools;
     
     buildLeaderboardTable(schoolsToRender, type);
@@ -305,7 +302,6 @@ function exportTableToCSV() {
     const filterNamesMap = { 'keseluruhan': 'Keseluruhan', 'murid': 'Murid', 'guru': 'Guru', 'sekolah': 'Sekolah', 'aktif': 'Aktif_Log_Masuk', 'tidak_aktif': 'Tidak_Aktif', 'belum_login': 'Belum_Login' };
     const columnNames = { 'keseluruhan': 'Pernah Login', 'murid': 'Pernah Login', 'guru': 'Pernah Login', 'sekolah': 'Pernah Login', 'aktif': 'Aktif Login', 'tidak_aktif': 'Tidak Aktif', 'belum_login': 'Belum Login' };
     
-    // PEMBAIKAN: Penambahan lajur Daerah dalam struktur CSV
     let csvContent = `Kedudukan,Daerah,Nama Sekolah,Kod Sekolah,Jenis Sekolah,Jumlah ID,${columnNames[currentFilterType]},Peratusan (%)\n`;
     
     currentLeaderboardData.forEach((s, index) => {
@@ -328,7 +324,6 @@ function exportTableToCSV() {
     document.body.removeChild(link);
 }
 
-// Utiliti untuk trigger klik dari jadual
 function simulateSchoolSearch(schoolName) {
     const input = document.getElementById('searchInput');
     input.value = schoolName;
@@ -337,4 +332,85 @@ function simulateSchoolSearch(schoolName) {
         const firstOption = document.querySelector('#autocompleteDropdown > div');
         if(firstOption) firstOption.click();
     }, 50);
+}
+
+/**
+ * Pengurusan Ekstrak & Muat Turun Data CSV Spesifik Sekolah
+ */
+async function handleExportSchoolData(kodSekolah, namaSekolah) {
+    if (!kodSekolah) return;
+
+    const btn = document.getElementById('sv_exportBtn');
+    const textEl = document.getElementById('sv_exportText');
+    
+    // Simpan state asal
+    const originalText = textEl.innerText;
+    const originalIcon = '<svg id="sv_exportIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>';
+    const spinnerIcon = '<svg id="sv_exportIcon" class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+    // Set Loading State (Menghalang klik berganda)
+    btn.disabled = true;
+    btn.classList.add('opacity-75', 'cursor-not-allowed');
+    textEl.innerText = 'Sedang Mengekstrak...';
+    
+    const iconEl = document.getElementById('sv_exportIcon');
+    if (iconEl) iconEl.outerHTML = spinnerIcon;
+
+    try {
+        // Panggil API Supabase melalui fail enjin
+        const response = await API.exportSchoolUsers(kodSekolah);
+
+        if (!response.success || !response.results || response.results.length === 0) {
+            alert('Tiada rekod pengguna dijumpai untuk dieksport.');
+            return;
+        }
+
+        // Proses data ke CSV dengan BOM (Byte Order Mark) untuk sokongan aksara UTF-8
+        let csvContent = '\uFEFF'; 
+        csvContent += `Bil,Nama Penuh,Emel,Kategori,Status\n`;
+
+        response.results.forEach((user, index) => {
+            // Keselamatan Data: Balut dengan petikan ganda (quotes) untuk mengelakkan ralat koma pada nama
+            const cleanName = `"${(user.nama || 'TIADA NAMA').replace(/"/g, '""')}"`;
+            const cleanEmail = `"${(user.emel || 'TIADA EMEL').replace(/"/g, '""')}"`;
+            const row = [
+                index + 1,
+                cleanName,
+                cleanEmail,
+                user.kategori || 'TIADA',
+                user.status || 'TIADA'
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+
+        // Format nama fail yang kemas dan selamat
+        const dateObj = new Date();
+        const dateStr = dateObj.toISOString().split('T')[0];
+        const timeStr = dateObj.toTimeString().split(' ')[0].replace(/:/g, '');
+        const safeNamaSekolah = namaSekolah.replace(/[^a-z0-9]/gi, '_').toUpperCase();
+
+        // Cetus muat turun (Auto-Download) pada pelayar
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `DELIMa_${kodSekolah}_${safeNamaSekolah}_${dateStr}_${timeStr}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+    } catch (error) {
+        console.error('Ralat mengeksport data CSV:', error);
+        alert('Gagal memuat turun data. Sila cuba sebentar lagi atau lapor kepada pentadbir.');
+    } finally {
+        // Pulihkan butang ke state asal
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        textEl.innerText = originalText;
+        
+        const currentIcon = document.getElementById('sv_exportIcon');
+        if (currentIcon) currentIcon.outerHTML = originalIcon;
+    }
 }

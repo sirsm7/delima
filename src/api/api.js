@@ -197,5 +197,35 @@ const API = {
         } catch (err) {
             console.error("Ralat Supabase (setupLivePresence):", err);
         }
+    },
+
+    /**
+     * FUNGSI 5: Ekstrak Penuh Data Pengguna Sekolah (Untuk Muat Turun CSV)
+     * Tiada had pencarian diletakkan supaya keseluruhan data sekolah ditarik.
+     */
+    async exportSchoolUsers(kodSekolah) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('delima_salinan_admin')
+                .select('nama_penuh, emel, kategori, status')
+                .eq('kod_sekolah', kodSekolah);
+
+            if (error) throw error;
+
+            return {
+                success: true,
+                count: data.length,
+                results: data.map(item => ({
+                    nama: item.nama_penuh,
+                    emel: item.emel,
+                    kategori: item.kategori,
+                    status: item.status
+                }))
+            };
+
+        } catch (err) {
+            console.error("Ralat Supabase (exportSchoolUsers):", err);
+            return { success: false, message: err.message };
+        }
     }
 };
