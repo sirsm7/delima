@@ -42,8 +42,12 @@ async function initApp() {
         // Build Overall Dashboard UI
         buildMetricsUI(window.globalData.overall, 'overallMetricsContainer');
 
-        // Build Default Leaderboard (Overall/Keseluruhan)
-        buildLeaderboardTable(window.currentFilteredSchools, 'keseluruhan');
+        // PERUBAHAN: Papan pendahulu tidak lagi dipaparkan secara lalai.
+        // buildLeaderboardTable(window.currentFilteredSchools, 'keseluruhan');
+        
+        // Pastikan kontena disembunyikan secara visual
+        const lbContainer = document.getElementById('leaderboardContainer');
+        if(lbContainer) lbContainer.classList.add('hidden');
 
         // Setup Main Search Engine (Autocomplete)
         setupMainSearchEngine();
@@ -141,6 +145,13 @@ function applyDaerahFilter(selectedDaerah) {
     resetToOverallView();
 
     const badgeEl = document.getElementById('overallBadgeText');
+    const lbContainer = document.getElementById('leaderboardContainer');
+    
+    // PERUBAHAN: Sembunyikan papan pendahulu setiap kali daerah ditukar
+    if(lbContainer) {
+        lbContainer.classList.add('hidden');
+        lbContainer.innerHTML = '';
+    }
     
     if (selectedDaerah === 'SEMUA') {
         // Reset to state-level view
@@ -160,13 +171,12 @@ function applyDaerahFilter(selectedDaerah) {
         buildMetricsUI(recalculatedMetrics, 'overallMetricsContainer');
     }
 
-    // Rebuild leaderboard maintaining the current metric filter (e.g., 'murid', 'aktif')
-    // currentFilterType variable is exposed via dashboard.js state memory
-    if (typeof currentFilterType !== 'undefined') {
-        buildLeaderboardTable(window.currentFilteredSchools, currentFilterType);
-    } else {
-        buildLeaderboardTable(window.currentFilteredSchools, 'keseluruhan');
-    }
+    // PERUBAHAN: Papan pendahulu tidak lagi dibina secara automatik apabila daerah ditukar
+    // if (typeof currentFilterType !== 'undefined') {
+    //     buildLeaderboardTable(window.currentFilteredSchools, currentFilterType);
+    // } else {
+    //     buildLeaderboardTable(window.currentFilteredSchools, 'keseluruhan');
+    // }
 }
 
 /**

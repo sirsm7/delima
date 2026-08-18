@@ -375,7 +375,13 @@ function applyLeaderboardFilter(type) {
     const schoolsToRender = window.currentFilteredSchools || window.globalData.schools;
     
     buildLeaderboardTable(schoolsToRender, type);
-    document.getElementById('leaderboardContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // Pastikan jadual ditayangkan selepas dijana (buang class hidden jika ada)
+    const container = document.getElementById('leaderboardContainer');
+    if (container) {
+        container.classList.remove('hidden');
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function buildLeaderboardTable(schools, filterType) {
@@ -524,22 +530,29 @@ function exportTableToTelegram() {
     
     let peringkatText = selectedDaerah === 'SEMUA' ? 'NEGERI MELAKA' : `PPD ${selectedDaerah}`;
 
-    // Membina Teks Berformat Markdown Telegram
-    let text = `📊 *PRESTASI ID DELIMA*\n`;
-    text += `Kategori: *${filterName}*\n`;
-    text += `Peringkat: *${peringkatText}*\n\n`;
+    // Membina Teks Berformat Markdown (Tebal: **, Condong: __)
+    let text = `📊 **PRESTASI ID DELIMA**\n`;
+    text += `Kategori: **${filterName}**\n`;
+    text += `Peringkat: **${peringkatText}**\n\n`;
 
     currentLeaderboardData.forEach((s, index) => {
-        text += `${index + 1}. ${s.nama_sekolah} - *${s.percentage.toFixed(1)}%*\n`;
+        let rankEmoji = '';
+        if (index === 0) rankEmoji = '🥇 ';
+        else if (index === 1) rankEmoji = '🥈 ';
+        else if (index === 2) rankEmoji = '🥉 ';
+        else rankEmoji = '🔹 ';
+
+        // 1. SK (A) BUKIT BERUANG - **85.0%**
+        text += `${rankEmoji}${index + 1}. ${s.nama_sekolah} - **${s.percentage.toFixed(1)}%**\n`;
     });
 
     text += `\n---\n`;
 
     // Penyertaan Nota Kaki Bergantung kepada Saringan Daerah (SoC)
     if (selectedDaerah === 'SEMUA') {
-        text += `Disediakan oleh:\nSEKTOR SUMBER TEKNOLOGI PENDIDIKAN\nJABATAN PENDIDIKAN NEGERI MELAKA`;
+        text += `__Disediakan oleh:__\n__SEKTOR SUMBER TEKNOLOGI PENDIDIKAN__\n__JABATAN PENDIDIKAN NEGERI MELAKA__`;
     } else {
-        text += `Disediakan oleh:\nUNIT SUMBER TEKNOLOGI PENDIDIKAN\nPEJABAT PENDIDIKAN DAERAH ${selectedDaerah}`;
+        text += `__Disediakan oleh:__\n__UNIT SUMBER TEKNOLOGI PENDIDIKAN__\n__PEJABAT PENDIDIKAN DAERAH ${selectedDaerah}__`;
     }
 
     // Integrasi dengan DOM untuk visual feedback dan penyalinan Clipboard API
