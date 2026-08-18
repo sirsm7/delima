@@ -356,7 +356,7 @@ function exportSpecificUserListCSV(labelTitle, kodSekolah) {
 
 
 /**
- * Pengurusan Penapis & Jadual Papan Pendahulu (KEKAL TANPA PERUBAHAN)
+ * Pengurusan Penapis & Jadual Papan Pendahulu
  */
 function applyLeaderboardFilter(type) {
     if (!window.globalData || !window.globalData.schools) return;
@@ -398,7 +398,9 @@ function buildLeaderboardTable(schools, filterType) {
             metricCount = (s.jumlah_aktif || 0) + (s.jumlah_tidak_aktif || 0);
         }
 
-        if (total > 0) {
+        // TUGASAN UTAMA: Tambahan && metricCount > 0
+        // Memastikan sekolah yang tiada data untuk penapis ini, tidak dipaparkan dalam leaderboard
+        if (total > 0 && metricCount > 0) {
             const percentage = (metricCount / total) * 100;
             filteredSchools.push({ ...s, mappedTotal: total, metricCount, percentage });
         }
