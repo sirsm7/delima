@@ -467,11 +467,15 @@ function buildLeaderboardTable(schools, filterType) {
                         <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">${filterNames[filterType]}</span>
                     </div>
                 </div>
-                <div class="flex gap-2 items-center self-end sm:self-auto">
+                <div class="flex gap-2 items-center self-end sm:self-auto flex-wrap sm:flex-nowrap justify-end w-full sm:w-auto">
                     <span class="inline-flex bg-white text-slate-600 border border-slate-200 text-xs font-bold px-3 py-1.5 rounded uppercase shadow-sm">
                         ${currentLeaderboardData.length} Data
                     </span>
-                    <button onclick="exportTableToCSV()" class="inline-flex items-center justify-center px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded uppercase shadow-sm hover:bg-slate-700 transition-colors">
+                    <button id="btnCopyTelegram" onclick="exportTableToTelegram()" class="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded uppercase shadow-sm hover:bg-blue-700 transition-colors focus:outline-none">
+                        <svg class="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.892-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                        Salin Telegram
+                    </button>
+                    <button onclick="exportTableToCSV()" class="inline-flex items-center justify-center px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded uppercase shadow-sm hover:bg-slate-700 transition-colors focus:outline-none">
                         <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         Eksport CSV
                     </button>
@@ -495,6 +499,109 @@ function buildLeaderboardTable(schools, filterType) {
             </div>
         </div>
     `;
+}
+
+/**
+ * FUNGSI BAHARU: Format data Papan Pendahulu ke teks gaya Telegram dan salin
+ */
+function exportTableToTelegram() {
+    if (!currentLeaderboardData || currentLeaderboardData.length === 0) {
+        alert("Tiada data untuk disalin.");
+        return;
+    }
+
+    const filterNamesMap = { 
+        'keseluruhan': 'Keseluruhan Akaun', 'murid': 'Murid Sahaja', 'guru': 'Guru Sahaja', 
+        'sekolah': 'Sekolah Sahaja', 'aktif': 'Aktif Log Masuk', 'tidak_aktif': 'Tidak Aktif (>90 Hari)', 
+        'belum_login': 'Belum Pernah Login' 
+    };
+    
+    const filterName = filterNamesMap[currentFilterType] || 'Keseluruhan';
+    
+    // Tarik nilai saringan semasa dari dropdown HTML
+    const daerahSelect = document.getElementById('filterDaerah');
+    const selectedDaerah = daerahSelect ? daerahSelect.value : 'SEMUA';
+    
+    let peringkatText = selectedDaerah === 'SEMUA' ? 'NEGERI MELAKA' : `PPD ${selectedDaerah}`;
+
+    // Membina Teks Berformat Markdown Telegram
+    let text = `📊 *PRESTASI ID DELIMA*\n`;
+    text += `Kategori: *${filterName}*\n`;
+    text += `Peringkat: *${peringkatText}*\n\n`;
+
+    currentLeaderboardData.forEach((s, index) => {
+        text += `${index + 1}. ${s.nama_sekolah} - *${s.percentage.toFixed(1)}%*\n`;
+    });
+
+    text += `\n---\n`;
+
+    // Penyertaan Nota Kaki Bergantung kepada Saringan Daerah (SoC)
+    if (selectedDaerah === 'SEMUA') {
+        text += `Disediakan oleh:\nSEKTOR SUMBER TEKNOLOGI PENDIDIKAN\nJABATAN PENDIDIKAN NEGERI MELAKA`;
+    } else {
+        text += `Disediakan oleh:\nUNIT SUMBER TEKNOLOGI PENDIDIKAN\nPEJABAT PENDIDIKAN DAERAH ${selectedDaerah}`;
+    }
+
+    // Integrasi dengan DOM untuk visual feedback dan penyalinan Clipboard API
+    const btn = document.getElementById('btnCopyTelegram');
+    const originalContent = btn ? btn.innerHTML : '';
+
+    const handleSuccess = () => {
+        if (btn) {
+            btn.innerHTML = `<svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Disalin!`;
+            btn.classList.replace('bg-blue-600', 'bg-emerald-600');
+            btn.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-700');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.classList.replace('bg-emerald-600', 'bg-blue-600');
+                btn.classList.replace('hover:bg-emerald-700', 'hover:bg-blue-700');
+            }, 2000);
+        } else {
+            alert("Berjaya disalin ke clipboard!");
+        }
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text)
+            .then(handleSuccess)
+            .catch(err => {
+                console.error('Gagal menggunakan Clipboard API moden:', err);
+                fallbackCopyTextToClipboard(text, handleSuccess);
+            });
+    } else {
+        // Fallback untuk pelayar lama atau persekitaran bukan HTTPS
+        fallbackCopyTextToClipboard(text, handleSuccess);
+    }
+}
+
+/**
+ * Utiliti penyalinan selamat fallback
+ */
+function fallbackCopyTextToClipboard(text, successCallback) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful && typeof successCallback === 'function') {
+            successCallback();
+        } else if (!successful) {
+            alert("Gagal menyalin teks. Fungsi tidak disokong pada pelayar ini.");
+        }
+    } catch (err) {
+        console.error('Penyalinan data gagal:', err);
+        alert("Ralat semasa menyalin. Sila cuba salin secara manual.");
+    }
+    
+    document.body.removeChild(textArea);
 }
 
 function exportTableToCSV() {
