@@ -147,7 +147,7 @@ function applyDaerahFilter(selectedDaerah) {
     const badgeEl = document.getElementById('overallBadgeText');
     const lbContainer = document.getElementById('leaderboardContainer');
     
-    // PERUBAHAN: Sembunyikan papan pendahulu setiap kali daerah ditukar
+    // Sembunyikan dan kosongkan dahulu jadual semasa proses pertukaran
     if(lbContainer) {
         lbContainer.classList.add('hidden');
         lbContainer.innerHTML = '';
@@ -171,12 +171,15 @@ function applyDaerahFilter(selectedDaerah) {
         buildMetricsUI(recalculatedMetrics, 'overallMetricsContainer');
     }
 
-    // PERUBAHAN: Papan pendahulu tidak lagi dibina secara automatik apabila daerah ditukar
-    // if (typeof currentFilterType !== 'undefined') {
-    //     buildLeaderboardTable(window.currentFilteredSchools, currentFilterType);
-    // } else {
-    //     buildLeaderboardTable(window.currentFilteredSchools, 'keseluruhan');
-    // }
+    // PERUBAHAN: Bina dan papar papan pendahulu secara automatik mengikut saringan (filter) 
+    // metrik terakhir yang aktif atau 'keseluruhan' sebagai lalai.
+    // Fungsi ini akan terus mengeluarkan kelas 'hidden' di dalam fail dashboard.js.
+    const activeFilter = (typeof currentFilterType !== 'undefined') ? currentFilterType : 'keseluruhan';
+    
+    // Guna setTimeout pendek untuk memastikan metrik dipaparkan sepenuhnya dahulu
+    setTimeout(() => {
+        applyLeaderboardFilter(activeFilter);
+    }, 50);
 }
 
 /**
