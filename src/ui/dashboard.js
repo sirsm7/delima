@@ -536,14 +536,18 @@ function exportTableToTelegram() {
     text += `Peringkat: **${peringkatText}**\n\n`;
 
     currentLeaderboardData.forEach((s, index) => {
-        let rankEmoji = '';
-        if (index === 0) rankEmoji = '🥇 ';
-        else if (index === 1) rankEmoji = '🥈 ';
-        else if (index === 2) rankEmoji = '🥉 ';
-        else rankEmoji = '🔹 ';
+        // Menggunakan ikon indikator prestasi (Lampu Isyarat) berdasarkan peratusan
+        let performanceEmoji = '';
+        if (s.percentage >= 80) {
+            performanceEmoji = '🟢 '; // Cemerlang
+        } else if (s.percentage >= 50) {
+            performanceEmoji = '🟡 '; // Sederhana
+        } else {
+            performanceEmoji = '🔴 '; // Lemah
+        }
 
-        // 1. SK (A) BUKIT BERUANG - **85.0%**
-        text += `${rankEmoji}${index + 1}. ${s.nama_sekolah} - **${s.percentage.toFixed(1)}%**\n`;
+        // 1. 🟢 SK (A) BUKIT BERUANG - **85.0%**
+        text += `${index + 1}. ${performanceEmoji}${s.nama_sekolah} - **${s.percentage.toFixed(1)}%**\n`;
     });
 
     text += `\n---\n`;
