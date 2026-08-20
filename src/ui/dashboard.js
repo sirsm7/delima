@@ -364,7 +364,6 @@ function exportSpecificUserListCSV(labelTitle, kodSekolah) {
     document.body.removeChild(link);
 }
 
-
 /**
  * Pengurusan Penapis & Jadual Papan Pendahulu
  */
@@ -524,6 +523,16 @@ function exportTableToTelegram() {
     
     const filterName = filterNamesMap[currentFilterType] || 'Keseluruhan';
     
+    // Menetapkan penerangan kategori spesifik berdasarkan filter
+    let deskripsiKategori = "";
+    if (currentFilterType === 'aktif') {
+        deskripsiKategori = "__Penerangan: AKTIF LOG MASUK adalah akaun DELIMa yang ada aktiviti log keluar dan masuk di GMAIL kurang 90 hari.__\n\n";
+    } else if (currentFilterType === 'tidak_aktif') {
+        deskripsiKategori = "__Penerangan: TIDAK AKTIF (>90 HARI) adalah akaun DELIMa yang tiada aktiviti log keluar dan masuk di GMAIL melebihi 90 hari.__\n\n";
+    } else if (currentFilterType === 'belum_login') {
+        deskripsiKategori = "__Penerangan: BELUM PERNAH LOGIN adalah akaun DELIMa yang BELUM login ke GMAIL.__\n\n";
+    }
+    
     // Tarik nilai saringan semasa dari dropdown HTML
     const daerahSelect = document.getElementById('filterDaerah');
     const selectedDaerah = daerahSelect ? daerahSelect.value : 'SEMUA';
@@ -534,6 +543,9 @@ function exportTableToTelegram() {
     let text = `📊 **PRESTASI ID DELIMA**\n`;
     text += `Kategori: **${filterName}**\n`;
     text += `Peringkat: **${peringkatText}**\n\n`;
+    
+    // Menyisipkan penerangan kategori sekiranya ada
+    text += deskripsiKategori;
 
     currentLeaderboardData.forEach((s, index) => {
         // Menggunakan ikon indikator prestasi (Lampu Isyarat) berdasarkan peratusan
