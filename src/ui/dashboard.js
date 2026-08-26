@@ -340,12 +340,12 @@ function exportSpecificUserListCSV(labelTitle, kodSekolah) {
     if (!data || data.length === 0) return alert("Tiada data untuk dieksport.");
 
     let csvContent = '\uFEFF'; 
-    csvContent += `Bil,Nama Penuh,Emel,Kategori,Status\n`;
+    csvContent += `Nama Penuh,ID DELIMa,Kategori,Status\n`;
 
     data.forEach((user, index) => {
         const cleanName = `"${(user.nama || 'TIADA NAMA').replace(/"/g, '""')}"`;
         const cleanEmail = `"${(user.emel || 'TIADA EMEL').replace(/"/g, '""')}"`;
-        const row = [index + 1, cleanName, cleanEmail, user.kategori || 'TIADA', user.status || 'TIADA'];
+        const row = [cleanName, cleanEmail, user.kategori || 'TIADA', user.status || 'TIADA'];
         csvContent += row.join(",") + "\n";
     });
 
@@ -701,13 +701,12 @@ async function handleExportSchoolData(kodSekolah, namaSekolah) {
         }
 
         let csvContent = '\uFEFF'; 
-        csvContent += `Bil,Nama Penuh,Emel,Kategori,Status\n`;
+        csvContent += `Nama Penuh,ID DELIMa,Kategori,Status\n`;
 
         response.results.forEach((user, index) => {
             const cleanName = `"${(user.nama || 'TIADA NAMA').replace(/"/g, '""')}"`;
             const cleanEmail = `"${(user.emel || 'TIADA EMEL').replace(/"/g, '""')}"`;
             const row = [
-                index + 1,
                 cleanName,
                 cleanEmail,
                 user.kategori || 'TIADA',
