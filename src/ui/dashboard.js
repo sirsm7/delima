@@ -526,11 +526,11 @@ function exportTableToTelegram() {
     // Menetapkan penerangan kategori spesifik berdasarkan filter
     let deskripsiKategori = "";
     if (currentFilterType === 'aktif') {
-        deskripsiKategori = "__Penerangan: AKTIF LOG MASUK adalah akaun DELIMa yang ada aktiviti log keluar dan masuk di GMAIL kurang 90 hari.__\n\n";
+        deskripsiKategori = "__Penerangan: AKTIF LOG MASUK adalah akaun DELIMa yang ada aktiviti log keluar dan masuk di GMAIL melalui Portal DELIMa 3.0, kurang 90 hari.__\n\n";
     } else if (currentFilterType === 'tidak_aktif') {
-        deskripsiKategori = "__Penerangan: TIDAK AKTIF (>90 HARI) adalah akaun DELIMa yang tiada aktiviti log keluar dan masuk di GMAIL melebihi 90 hari.__\n\n";
+        deskripsiKategori = "__Penerangan: TIDAK AKTIF (>90 HARI) adalah akaun DELIMa yang tiada aktiviti log keluar dan masuk di GMAIL melalui Portal DELIMa 3.0, melebihi 90 hari.__\n\n";
     } else if (currentFilterType === 'belum_login') {
-        deskripsiKategori = "__Penerangan: BELUM PERNAH LOGIN adalah akaun DELIMa yang BELUM login ke GMAIL.__\n\n";
+        deskripsiKategori = "__Penerangan: BELUM PERNAH LOGIN adalah akaun DELIMa yang BELUM login ke GMAIL melalui Portal DELIMa 3.0.__\n\n";
     }
     
     // Tarik nilai saringan semasa dari dropdown HTML
