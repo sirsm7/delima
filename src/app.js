@@ -1,132 +1,139 @@
 /**
  * ==============================================================================
- * SYSTEM ARCHITECTURE: HYBRID DASHBOARD
- * FILE: app.js (Main Orchestrator & Initialization)
+ * SENI BINA SISTEM: DASHBOARD HIBRID
+ * FAIL: app.js (Orkestrator Utama & Pengurusan Aliran Aplikasi)
  * ==============================================================================
  */
 
-// Initialize the application once the DOM is fully loaded
+// Inisialisasi aplikasi apabila struktur DOM selesai dimuatkan sepenuhnya
 document.addEventListener('DOMContentLoaded', initApp);
 
 /**
- * Core Initialization Function
+ * Fungsi Permulaan Teras Aplikasi
  */
 async function initApp() {
     try {
-        // Fetch data from Supabase via API Engine
+        // Tarik data daripada Supabase melalui enjin API (Stale-While-Revalidate & IDB Cache)
         const response = await API.fetchDashboardData();
 
         if (!response.success) {
-            throw new Error(response.message || "Failed to fetch data from Supabase.");
+            throw new Error(response.message || "Gagal memperoleh data daripada pangkalan data Supabase.");
         }
 
-        // Store data globally for access by dashboard.js filter functions
+        // Simpan data ke dalam memori global untuk capaian penapis
         window.globalData = response;
-        
-        // PEMBAIKAN: Default tatasusunan data yang aktif (Semua Negeri)
         window.currentFilteredSchools = response.schools;
 
-        // Format and Display Last Updated Timestamp
+        // Format dan paparkan cap masa data terkini
         const dateObj = new Date(response.timestamp);
         const lastUpdatedEl = document.getElementById('lastUpdatedText');
         if (lastUpdatedEl) {
-            lastUpdatedEl.innerText = "Data Terkini: " + dateObj.toLocaleString('ms-MY');
+            lastUpdatedEl.textContent = "Data Terkini: " + dateObj.toLocaleString('ms-MY');
         }
 
-        // PEMBAIKAN: Isi kandungan Dropdown Penapis Daerah secara dinamik
+        // Isi kandungan dropdown penapis daerah secara dinamik
         populateDaerahDropdown(window.globalData.schools);
 
-        // PEMBAIKAN: Aktifkan pendengar acara (event listener) untuk Penapis Daerah
+        // Pasang pendengar acara bagi penapis daerah
         setupDaerahFilter();
 
-        // Build Overall Dashboard UI
+        // Bina antaramuka papan pemuka keseluruhan
         buildMetricsUI(window.globalData.overall, 'overallMetricsContainer');
 
-        // PERUBAHAN: Papan pendahulu tidak lagi dipaparkan secara lalai.
-        // buildLeaderboardTable(window.currentFilteredSchools, 'keseluruhan');
-        
-        // Pastikan kontena disembunyikan secara visual
+        // Pastikan kontena papan pendahulu disembunyikan secara lalai pada muatan awal
         const lbContainer = document.getElementById('leaderboardContainer');
-        if(lbContainer) lbContainer.classList.add('hidden');
+        if (lbContainer) {
+            lbContainer.classList.add('hidden');
+            lbContainer.textContent = '';
+        }
 
-        // Setup Main Search Engine (Autocomplete)
+        // Mulakan enjin carian sekolah utama (Autolengkap)
         setupMainSearchEngine();
 
-        // Attach Global Event Listeners
-        document.getElementById('btnTutupPaparan')?.addEventListener('click', resetToOverallView);
+        // Pasang pendengar acara butang tutup paparan sekolah
+        const btnTutup = document.getElementById('btnTutupPaparan');
+        if (btnTutup) {
+            btnTutup.addEventListener('click', resetToOverallView);
+        }
 
-        // PEMBAIKAN: Mulakan pemantauan pengguna aktif (Live Presence)
-        initializeLivePresence();
+        // Inisialisasi ciri segerak masa nyata (Live Presence & Table Watch)
+        initializeRealtimeFeatures();
 
-        // Transition UI from Loading to Ready State
-        document.getElementById('loadingState').classList.add('hidden');
-        document.getElementById('appContainer').classList.remove('hidden');
+        // Transisi antaramuka daripada keadaan pemuatan ke keadaan sedia
+        const loadingState = document.getElementById('loadingState');
+        const appContainer = document.getElementById('appContainer');
+        if (loadingState) loadingState.classList.add('hidden');
+        if (appContainer) appContainer.classList.remove('hidden');
 
     } catch (error) {
-        console.error("Initialization Error:", error);
+        console.error("Ralat Permulaan Aplikasi:", error);
         displayCriticalError(error.message);
     }
 }
 
 /**
- * Initialize Real-time Presence Indicator
+ * Inisialisasi Pemantauan Kehadiran Langsung & Langganan Jadual Realtime
  */
-function initializeLivePresence() {
-    // Pastikan enjin API telah dikemas kini
-    if (typeof API.setupLivePresence !== 'function') return;
+function initializeRealtimeFeatures() {
+    if (!window.Realtime) return;
 
-    // Laksana callback apabila status kehadiran berubah
-    API.setupLivePresence((totalViewers) => {
-        const indicatorEl = document.getElementById('liveViewerIndicator');
-        const countEl = document.getElementById('liveViewerCount');
-        
-        if (indicatorEl && countEl) {
-            // Kemas kini angka dalam UI
-            countEl.innerText = totalViewers;
-            
-            // Logik Darjah Kebolehlihatan (Visibility)
-            if (totalViewers > 0) {
-                indicatorEl.classList.remove('hidden');
-                indicatorEl.classList.add('flex');
-            } else {
-                indicatorEl.classList.add('hidden');
-                indicatorEl.classList.remove('flex');
+    // 1. Pemantauan kehadiran pengguna aktif secara langsung
+    if (typeof window.Realtime.initPresence === 'function') {
+        window.Realtime.initPresence((totalViewers) => {
+            const indicatorEl = document.getElementById('liveViewerIndicator');
+            const countEl = document.getElementById('liveViewerCount');
+
+            if (indicatorEl && countEl) {
+                countEl.textContent = totalViewers;
+
+                if (totalViewers > 0) {
+                    indicatorEl.classList.remove('hidden');
+                    indicatorEl.classList.add('flex');
+                } else {
+                    indicatorEl.classList.add('hidden');
+                    indicatorEl.classList.remove('flex');
+                }
             }
-        }
-    });
+        });
+    }
+
+    // 2. Langganan perubahan data jadual (postgres_changes)
+    if (typeof window.Realtime.initTableSubscription === 'function') {
+        window.Realtime.initTableSubscription();
+    }
 }
 
 /**
- * Extract Unique Districts and Populate the Filter Dropdown
+ * Ekstrak Senarai Daerah Unik dan Isi Pilihan Dropdown
  */
 function populateDaerahDropdown(schools) {
     const dropdown = document.getElementById('filterDaerah');
-    if (!dropdown) return;
+    if (!dropdown || !Array.isArray(schools)) return;
 
-    // Use a Set to ensure unique values
     const daerahSet = new Set();
-    
+
     schools.forEach(school => {
         if (school.daerah && school.daerah.trim() !== '') {
             daerahSet.add(school.daerah.trim().toUpperCase());
         }
     });
 
-    // Sort alphabetically
     const sortedDaerah = Array.from(daerahSet).sort();
+    const fragment = document.createDocumentFragment();
 
-    // Append options to dropdown
     sortedDaerah.forEach(daerah => {
         const option = document.createElement('option');
         option.value = daerah;
-        option.text = daerah;
+        option.textContent = daerah;
         option.className = "font-semibold";
-        dropdown.appendChild(option);
+        fragment.appendChild(option);
     });
+
+    dropdown.appendChild(fragment);
 }
 
 /**
- * Setup Event Listener for District Filter
+ * Tetapkan Pendengar Acara bagi Penapis Daerah
  */
 function setupDaerahFilter() {
     const dropdown = document.getElementById('filterDaerah');
@@ -138,52 +145,44 @@ function setupDaerahFilter() {
 }
 
 /**
- * Core Logic to Filter Data and Recalculate Metrics
+ * Logik Penapisan Data Mengikut Daerah dan Pengiraan Semula Metrik
  */
 function applyDaerahFilter(selectedDaerah) {
-    // Return to overall view if a specific school is currently being viewed
+    // Kembali ke paparan keseluruhan sekiranya paparan sekolah sedang aktif
     resetToOverallView();
 
     const badgeEl = document.getElementById('overallBadgeText');
     const lbContainer = document.getElementById('leaderboardContainer');
-    
-    // Sembunyikan dan kosongkan dahulu jadual semasa proses pertukaran
-    if(lbContainer) {
+
+    if (lbContainer) {
         lbContainer.classList.add('hidden');
-        lbContainer.innerHTML = '';
+        lbContainer.textContent = '';
     }
-    
+
     if (selectedDaerah === 'SEMUA') {
-        // Reset to state-level view
         window.currentFilteredSchools = window.globalData.schools;
-        if(badgeEl) badgeEl.innerText = 'Peringkat Negeri';
-        
+        if (badgeEl) badgeEl.textContent = 'Peringkat Negeri';
+
         buildMetricsUI(window.globalData.overall, 'overallMetricsContainer');
     } else {
-        // Filter array for the specific district
         window.currentFilteredSchools = window.globalData.schools.filter(
             s => s.daerah && s.daerah.trim().toUpperCase() === selectedDaerah
         );
-        if(badgeEl) badgeEl.innerText = 'PPD ' + selectedDaerah;
-        
-        // Recalculate metrics based on the subset array
+        if (badgeEl) badgeEl.textContent = 'PPD ' + selectedDaerah;
+
         const recalculatedMetrics = recalculateOverallMetrics(window.currentFilteredSchools);
         buildMetricsUI(recalculatedMetrics, 'overallMetricsContainer');
     }
 
-    // PERUBAHAN: Bina dan papar papan pendahulu secara automatik mengikut saringan (filter) 
-    // metrik terakhir yang aktif atau 'keseluruhan' sebagai lalai.
-    // Fungsi ini akan terus mengeluarkan kelas 'hidden' di dalam fail dashboard.js.
-    const activeFilter = (typeof currentFilterType !== 'undefined') ? currentFilterType : 'keseluruhan';
-    
-    // Guna setTimeout pendek untuk memastikan metrik dipaparkan sepenuhnya dahulu
+    const activeFilter = (typeof window.currentFilterType !== 'undefined') ? window.currentFilterType : 'keseluruhan';
+
     setTimeout(() => {
         applyLeaderboardFilter(activeFilter);
     }, 50);
 }
 
 /**
- * Aggregation Engine to Sum Metrics for a Custom Array of Schools
+ * Enjin Agregasi untuk Menjumlahkan Metrik Tatasusunan Sekolah
  */
 function recalculateOverallMetrics(filteredSchoolsArray) {
     const newMetrics = {
@@ -205,7 +204,7 @@ function recalculateOverallMetrics(filteredSchoolsArray) {
 }
 
 /**
- * Setup the Autocomplete Search Engine for Schools
+ * Tetapkan Enjin Carian Autolengkap Sekolah
  */
 function setupMainSearchEngine() {
     const input = document.getElementById('searchInput');
@@ -215,24 +214,22 @@ function setupMainSearchEngine() {
 
     input.addEventListener('input', function(e) {
         const query = e.target.value.toLowerCase().trim();
-        input.value = input.value.toUpperCase(); // Force uppercase visually
-        
-        // PEMBAIKAN: Hanya cari dalam senarai sekolah yang ditapis ketika ini
+        input.value = input.value.toUpperCase();
+
         if (query.length === 0 || !window.currentFilteredSchools) {
             dropdown.classList.add('hidden');
+            dropdown.textContent = '';
             return;
         }
 
-        // Filter Schools Data based on Name or Code
         const results = window.currentFilteredSchools.filter(school => {
-            return (school.nama_sekolah && school.nama_sekolah.toLowerCase().includes(query)) || 
+            return (school.nama_sekolah && school.nama_sekolah.toLowerCase().includes(query)) ||
                    (school.kod_sekolah && school.kod_sekolah.toLowerCase().includes(query));
         });
 
         renderAutocompleteDropdown(results, query);
     });
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
         if (!input.contains(e.target) && !dropdown.contains(e.target)) {
             dropdown.classList.add('hidden');
@@ -241,56 +238,109 @@ function setupMainSearchEngine() {
 }
 
 /**
- * Render Autocomplete Dropdown Items
+ * Paparkan Hasil Autolengkap Carian Sekolah (Bebas XSS dengan DocumentFragment)
  */
 function renderAutocompleteDropdown(results, query) {
     const dropdown = document.getElementById('autocompleteDropdown');
-    dropdown.innerHTML = '';
+    if (!dropdown) return;
+
+    dropdown.textContent = '';
 
     if (results.length === 0) {
-        dropdown.innerHTML = '<div class="p-4 text-sm text-red-500 font-semibold text-center bg-red-50">Tiada sekolah ditemui. Sila cuba kata kunci lain.</div>';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'p-4 text-sm text-red-500 font-semibold text-center bg-red-50';
+        emptyDiv.textContent = 'Tiada sekolah ditemui. Sila cuba kata kunci lain.';
+        dropdown.appendChild(emptyDiv);
     } else {
-        const limit = Math.min(results.length, 50); // Performance cap
-        
+        const fragment = document.createDocumentFragment();
+        const limit = Math.min(results.length, 50);
+
         for (let i = 0; i < limit; i++) {
             const s = results[i];
             const div = document.createElement('div');
             div.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors flex justify-between items-center';
-            div.innerHTML = `
-                <div class="truncate pr-4">
-                    <p class="text-sm font-bold text-slate-800 truncate">${s.nama_sekolah}</p>
-                    <p class="text-[10px] font-semibold text-slate-500 mt-0.5">
-                        <span class="text-purple-600 font-bold uppercase tracking-wider">${s.daerah || 'TIADA DAERAH'}</span> &bull; 
-                        <span class="uppercase">${s.jenis_sekolah || 'LAIN-LAIN'}</span>
-                    </p>
-                </div>
-                <span class="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded border border-slate-200">${s.kod_sekolah}</span>
-            `;
-            // Trigger school view transition on click
-            div.onclick = () => renderSchoolView(s);
-            dropdown.appendChild(div);
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'truncate pr-4';
+
+            const nameEl = document.createElement('p');
+            nameEl.className = 'text-sm font-bold text-slate-800 truncate';
+            nameEl.textContent = s.nama_sekolah || '';
+            infoDiv.appendChild(nameEl);
+
+            const metaEl = document.createElement('p');
+            metaEl.className = 'text-[10px] font-semibold text-slate-500 mt-0.5';
+
+            const daerahSpan = document.createElement('span');
+            daerahSpan.className = 'text-purple-600 font-bold uppercase tracking-wider';
+            daerahSpan.textContent = s.daerah || 'TIADA DAERAH';
+            metaEl.appendChild(daerahSpan);
+
+            metaEl.appendChild(document.createTextNode(' • '));
+
+            const jenisSpan = document.createElement('span');
+            jenisSpan.className = 'uppercase';
+            jenisSpan.textContent = s.jenis_sekolah || 'LAIN-LAIN';
+            metaEl.appendChild(jenisSpan);
+
+            infoDiv.appendChild(metaEl);
+            div.appendChild(infoDiv);
+
+            const codeSpan = document.createElement('span');
+            codeSpan.className = 'text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded border border-slate-200';
+            codeSpan.textContent = s.kod_sekolah || '';
+            div.appendChild(codeSpan);
+
+            div.addEventListener('click', () => renderSchoolView(s));
+            fragment.appendChild(div);
         }
-        
+
         if (results.length > 50) {
-            dropdown.innerHTML += `<div class="p-2 text-xs text-center font-medium text-slate-400 bg-slate-50 border-t border-slate-100">... dan ${results.length - 50} keputusan lain.</div>`;
+            const extraDiv = document.createElement('div');
+            extraDiv.className = 'p-2 text-xs text-center font-medium text-slate-400 bg-slate-50 border-t border-slate-100';
+            extraDiv.textContent = `... dan ${results.length - 50} keputusan lain.`;
+            fragment.appendChild(extraDiv);
         }
+
+        dropdown.appendChild(fragment);
     }
+
     dropdown.classList.remove('hidden');
 }
 
 /**
- * Display Critical Error UI if App Fails to Initialize
+ * Paparkan Ralat Kritikal Antaramuka Sekiranya Inisialisasi Gagal
  */
 function displayCriticalError(message) {
     const loadingState = document.getElementById('loadingState');
-    if (loadingState) {
-        loadingState.innerHTML = `
-            <div class="text-red-500 mb-4">
-                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </div>
-            <h2 class="text-xl font-bold text-slate-800">Ralat Komunikasi API Supabase</h2>
-            <p class="text-sm text-slate-500 mt-2">${message}</p>
-            <button onclick="location.reload()" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-sm hover:bg-blue-700">Cuba Semula</button>
-        `;
-    }
+    if (!loadingState) return;
+
+    loadingState.textContent = '';
+
+    const errorWrapper = document.createElement('div');
+    errorWrapper.className = 'flex flex-col items-center justify-center py-20 text-center px-4';
+
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'text-red-500 mb-4';
+    iconDiv.innerHTML = '<svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+    errorWrapper.appendChild(iconDiv);
+
+    const titleEl = document.createElement('h2');
+    titleEl.className = 'text-xl font-bold text-slate-800';
+    titleEl.textContent = 'Ralat Komunikasi API Supabase';
+    errorWrapper.appendChild(titleEl);
+
+    const msgEl = document.createElement('p');
+    msgEl.className = 'text-sm text-slate-500 mt-2 max-w-md';
+    msgEl.textContent = message || 'Gagal menyegerak data dengan pangkalan pelayan.';
+    errorWrapper.appendChild(msgEl);
+
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-sm hover:bg-blue-700 transition-colors';
+    retryBtn.textContent = 'Cuba Semula';
+    retryBtn.addEventListener('click', () => location.reload());
+    errorWrapper.appendChild(retryBtn);
+
+    loadingState.appendChild(errorWrapper);
+    loadingState.classList.remove('hidden');
 }
