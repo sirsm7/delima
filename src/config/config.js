@@ -6,9 +6,10 @@
  */
 
 const APP_CONFIG = {
-    // 1. Pangkalan Data Supabase (REST & Realtime)
-    SUPABASE_URL: "https://app.tech4ag.my",
-    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzYzMzczNjQ1LCJleHAiOjIwNzg3MzM2NDV9.vZOedqJzUn01PjwfaQp7VvRzSm4aRMr21QblPDK8AoY",
+    // 1. Pangkalan Data Supabase (Dihala melalui Cloudflare Reverse Proxy)
+    // URL sebenar dan Kunci Anon JWT disembunyikan sepenuhnya di Cloudflare Pages Functions
+    SUPABASE_URL: `${window.location.origin}/api`,
+    SUPABASE_ANON_KEY: "cloudflare-proxy-managed",
 
     // 2. Metadata Aplikasi
     DASHBOARD_TITLE: "Dashboard ID DELIMa Jabatan Pendidikan Negeri",

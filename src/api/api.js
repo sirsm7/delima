@@ -5,10 +5,17 @@
  * ==============================================================================
  */
 
-// Inisialisasi Klien Supabase (Bergantung kepada APP_CONFIG dalam config.js)
+// Inisialisasi Klien Supabase (Beroperasi melalui Cloudflare Reverse Proxy)
 const supabaseClient = supabase.createClient(
     APP_CONFIG.SUPABASE_URL,
-    APP_CONFIG.SUPABASE_ANON_KEY
+    APP_CONFIG.SUPABASE_ANON_KEY,
+    {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    }
 );
 
 // Pendedahan rujukan klien Supabase untuk kegunaan modul segerak (realtime.js)
