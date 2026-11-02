@@ -42,10 +42,17 @@ export async function onRequest(context) {
         const incomingUrl = new URL(request.url);
 
         // Ekstrak laluan di belakang /api
-        // Contoh: /api/rest/v1/delima_data_sekolah -> /rest/v1/delima_data_sekolah
         const targetPath = incomingUrl.pathname.replace(/^\/api/, '');
         const cleanBaseUrl = supabaseUrl.replace(/\/+$/, '');
         const targetUrl = new URL(`${cleanBaseUrl}${targetPath}${incomingUrl.search}`);
+
+        // Gantikan apikey proksi dengan apikey anon Supabase sebenar dalam query params
+        if (targetUrl.searchParams.has('apikey') || targetPath.includes('/realtime/v1/websocket')) {
+            targetUrl.searchParams.set('apikey', supabaseAnonKey);
+        }
+
+        // Semak sama ada ini adalah sambungan WebSocket (Jabat tangan Realtime)
+        const isWebSocket = request.headers.get('Upgrade')?.toLowerCase() === 'websocket';
 
         // Salin dan ubah suai pengepala permintaan ke Supabase
         const forwardHeaders = new Headers(request.headers);
@@ -63,18 +70,21 @@ export async function onRequest(context) {
             redirect: 'follow'
         };
 
-        // Lampirkan badan permintaan jika bukan kaedah GET atau HEAD
-        if (request.method !== 'GET' && request.method !== 'HEAD') {
+        // Lampirkan badan permintaan jika bukan kaedah GET/HEAD dan bukan WebSocket
+        if (!isWebSocket && request.method !== 'GET' && request.method !== 'HEAD') {
             init.body = request.body;
         }
 
         // Hantar permintaan proksi ke pelayan Supabase sebenar
         const upstreamResponse = await fetch(targetUrl.toString(), init);
 
-        // Bina semula respons bagi mengekalkan data serta integriti pengepala
-        const responseHeaders = new Headers(upstreamResponse.headers);
+        // Sekiranya sambungan adalah WebSocket (Status 101), pulangkan respons asal secara terus (Pass-through)
+        if (isWebSocket || upstreamResponse.status === 101) {
+            return upstreamResponse;
+        }
 
-        // Kawalan sumber dan pencegahan pendedahan rujukan dalaman
+        // Bina semula respons REST bagi mengekalkan data serta integriti pengepala CORS
+        const responseHeaders = new Headers(upstreamResponse.headers);
         responseHeaders.set('Access-Control-Allow-Origin', incomingUrl.origin || '*');
         responseHeaders.set('Access-Control-Allow-Credentials', 'true');
 
