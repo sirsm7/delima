@@ -1,46 +1,54 @@
-/**
- * ==============================================================================
- * SENI BINA SISTEM: DASHBOARD HIBRID
- * FAIL: realtime.js (Pengurusan Saluran Segerak & Kehadiran Supabase Realtime)
- * ==============================================================================
- */
-
 const Realtime = {
     presenceChannel: null,
     tableChannel: null,
     sessionUUID: null,
+    presenceCallback: null,
 
-    /**
-     * Inisialisasi pemantauan pengguna langsung (Live Presence)
-     */
+    getTargetSchema() {
+        return (window.APP_CONFIG && APP_CONFIG.SUPABASE_SCHEMA)
+            ? APP_CONFIG.SUPABASE_SCHEMA
+            : 'delima_data';
+    },
+
     initPresence(onPresenceChangeCallback) {
         const client = window.supabaseClient || (window.API && window.API.client);
         if (!client) {
-            console.warn("Klien Supabase belum sedia untuk Realtime Presence.");
             return null;
         }
 
-        const channelName = (window.APP_CONFIG && APP_CONFIG.REALTIME && APP_CONFIG.REALTIME.PRESENCE_CHANNEL)
+        if (typeof onPresenceChangeCallback === 'function') {
+            this.presenceCallback = onPresenceChangeCallback;
+        }
+
+        if (this.presenceChannel) {
+            client.removeChannel(this.presenceChannel);
+            this.presenceChannel = null;
+        }
+
+        const channelName = (window.APP_CONFIG && window.APP_CONFIG.REALTIME && window.APP_CONFIG.REALTIME.PRESENCE_CHANNEL)
             ? APP_CONFIG.REALTIME.PRESENCE_CHANNEL
             : 'dashboard-viewers';
 
-        this.sessionUUID = (typeof crypto !== 'undefined' && crypto.randomUUID)
-            ? crypto.randomUUID()
-            : 'user-' + Math.random().toString(36).substring(2, 11);
+        if (!this.sessionUUID) {
+            this.sessionUUID = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : 'user-' + Math.random().toString(36).substring(2, 11);
+        }
 
         this.presenceChannel = client.channel(channelName);
 
         this.presenceChannel
             .on('presence', { event: 'sync' }, () => {
+                if (!this.presenceChannel) return;
                 const presenceState = this.presenceChannel.presenceState();
                 const totalViewers = Object.keys(presenceState).length;
 
-                if (typeof onPresenceChangeCallback === 'function') {
-                    onPresenceChangeCallback(totalViewers);
+                if (typeof this.presenceCallback === 'function') {
+                    this.presenceCallback(totalViewers);
                 }
             })
             .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
+                if (status === 'SUBSCRIBED' && this.presenceChannel) {
                     await this.presenceChannel.track({
                         user: this.sessionUUID,
                         online_at: new Date().toISOString()
@@ -51,25 +59,27 @@ const Realtime = {
         return this.presenceChannel;
     },
 
-    /**
-     * Inisialisasi langganan perubahan data (postgres_changes)
-     */
     initTableSubscription() {
         const client = window.supabaseClient || (window.API && window.API.client);
         if (!client) {
-            console.warn("Klien Supabase belum sedia untuk Table Subscription.");
             return null;
         }
 
-        const tableName = (window.APP_CONFIG && APP_CONFIG.REALTIME && APP_CONFIG.REALTIME.TABLE_WATCH_SEKOLAH)
+        if (this.tableChannel) {
+            client.removeChannel(this.tableChannel);
+            this.tableChannel = null;
+        }
+
+        const targetSchema = this.getTargetSchema();
+        const tableName = (window.APP_CONFIG && window.APP_CONFIG.REALTIME && window.APP_CONFIG.REALTIME.TABLE_WATCH_SEKOLAH)
             ? APP_CONFIG.REALTIME.TABLE_WATCH_SEKOLAH
             : 'delima_data_sekolah';
 
         this.tableChannel = client
-            .channel(`watch-${tableName}`)
+            .channel(`watch-${targetSchema}-${tableName}`)
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: tableName },
+                { event: '*', schema: targetSchema, table: tableName },
                 (payload) => this.handleTableChange(payload)
             )
             .subscribe();
@@ -77,9 +87,6 @@ const Realtime = {
         return this.tableChannel;
     },
 
-    /**
-     * Mengendalikan acara perubahan data dengan semakan konflik (Idempotency)
-     */
     async handleTableChange(payload) {
         if (!payload || !payload.new) return;
 
@@ -100,25 +107,20 @@ const Realtime = {
 
                     if (existingIndex !== -1) {
                         const currentRecord = cachedDashboard.schools[existingIndex];
+                        const hasTimestamps = Boolean(currentRecord.last_synced && newRecord.last_synced);
+                        const currentSyncTime = hasTimestamps ? new Date(currentRecord.last_synced).getTime() : 0;
+                        const newSyncTime = hasTimestamps ? new Date(newRecord.last_synced).getTime() : 0;
 
-                        // Semakan cap masa konflik: pastikan rekod baharu lebih terkini atau setara
-                        const currentSyncTime = currentRecord.last_synced ? new Date(currentRecord.last_synced).getTime() : 0;
-                        const newSyncTime = newRecord.last_synced ? new Date(newRecord.last_synced).getTime() : Date.now();
-
-                        if (newSyncTime >= currentSyncTime) {
+                        if (!hasTimestamps || newSyncTime >= currentSyncTime) {
                             const preservedDaerah = currentRecord.daerah;
                             cachedDashboard.schools[existingIndex] = {
                                 ...newRecord,
                                 daerah: newRecord.daerah || preservedDaerah
                             };
 
-                            // Kira semula agregasi data keseluruhan
                             this.recalculateCachedTotals(cachedDashboard);
-
-                            // Simpan semula ke dalam IDBCache
                             await window.IDBCache.set(storeName, cacheKey, cachedDashboard);
 
-                            // Pancarkan CustomEvent untuk pengemaskinian nod DOM bersasar
                             window.dispatchEvent(new CustomEvent('delima:school-updated', {
                                 detail: {
                                     school: cachedDashboard.schools[existingIndex],
@@ -130,14 +132,10 @@ const Realtime = {
                     }
                 }
             } catch (err) {
-                console.error("Ralat mengendalikan perubahan data langsung (handleTableChange):", err);
             }
         }
     },
 
-    /**
-     * Kira semula agregasi metrik data keseluruhan apabila rekod dikemas kini
-     */
     recalculateCachedTotals(dashboardObj) {
         const metrikTeras = [
             'jumlah_akaun', 'jumlah_aktif', 'jumlah_tidak_aktif', 'jumlah_belum_login',
@@ -159,9 +157,6 @@ const Realtime = {
         dashboardObj.timestamp = new Date().toISOString();
     },
 
-    /**
-     * Nyahlanggan dan bersihkan semua saluran aktif Supabase Realtime
-     */
     cleanup() {
         const client = window.supabaseClient || (window.API && window.API.client);
         if (!client) return;
@@ -178,7 +173,26 @@ const Realtime = {
     }
 };
 
-// Pengurusan kitaran hayat sambungan pelayar
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        if (Realtime.presenceChannel && Realtime.presenceChannel.state !== 'joined') {
+            Realtime.initPresence();
+        }
+        if (Realtime.tableChannel && Realtime.tableChannel.state !== 'joined') {
+            Realtime.initTableSubscription();
+        }
+    }
+});
+
+window.addEventListener('online', () => {
+    if (Realtime.presenceChannel && Realtime.presenceChannel.state !== 'joined') {
+        Realtime.initPresence();
+    }
+    if (Realtime.tableChannel && Realtime.tableChannel.state !== 'joined') {
+        Realtime.initTableSubscription();
+    }
+});
+
 window.addEventListener('beforeunload', () => {
     Realtime.cleanup();
 });

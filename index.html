@@ -4,27 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Papan Pemuka DELIMa JPN</title>
-    
-    <!-- FAVICON -->
     <link rel="icon" href="https://drive.google.com/thumbnail?id=18VTHEYDgvec8VXeyp53EMi8xB2r796F0&sz=w128" type="image/png">
-    
-    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- KONFIGURASI TAILWIND (SoC) -->
     <script src="assets/js/tailwind-config.js"></script>
-    
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- FAIL GAYAAN LUARAN (SoC) -->
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-    <!-- NAVIGATION BAR -->
     <header class="glass-header sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-4">
@@ -38,11 +27,9 @@
                 </div>
             </div>
             
-            <!-- MAKLUMAT TERKINI & STATUS LIVE VIEWER -->
             <div class="hidden md:flex flex-col items-end gap-1.5">
                 <p class="text-xs text-slate-500 font-medium" id="lastUpdatedText">Menunggu data...</p>
                 
-                <!-- PENUNJUK LIVE VIEWERS -->
                 <div id="liveViewerIndicator" class="hidden items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md shadow-sm transition-all duration-300" title="Jumlah pengguna yang sedang melihat paparan ini sekarang">
                     <span class="relative flex h-2 w-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -56,24 +43,19 @@
         </div>
     </header>
 
-    <!-- MAIN CONTENT -->
     <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         
-        <!-- STATUS LOADING -->
         <div id="loadingState" class="flex flex-col items-center justify-center py-20">
             <div class="spinner mb-4"></div>
             <h2 class="text-lg font-bold text-slate-700">Menyegerak Data Supabase</h2>
             <p class="text-sm text-slate-500 mt-1">Sila tunggu sebentar, sistem sedang menghubungi pangkalan pelayan...</p>
         </div>
 
-        <!-- APP CONTAINER -->
         <div id="appContainer" class="hidden">
             
-            <!-- SECTION 1: KAWALAN PAPAN PEMUKA (PENAPIS DAERAH & CARIAN SEKOLAH) -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8 relative z-40">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     
-                    <!-- 1A: PENAPIS DAERAH -->
                     <div class="md:col-span-1">
                         <label for="filterDaerah" class="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-3 flex items-center gap-2">
                             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -89,7 +71,6 @@
                         </div>
                     </div>
 
-                    <!-- 1B: KOTAK CARIAN SEKOLAH & BUTANG GLOBAL -->
                     <div class="md:col-span-2 relative">
                         <div class="flex justify-between items-end mb-3">
                             <label for="searchInput" class="block text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -113,16 +94,12 @@
                                    placeholder="Masukkan Nama Sekolah atau Kod (Contoh: MBA0001)..." 
                                    autocomplete="off">
                                    
-                            <!-- DROPDOWN AUTOCOMPLETE -->
                             <div id="autocompleteDropdown" class="absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto hidden z-50"></div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- SECTION 2: VIEW KONTENA KESELURUHAN & SPESIFIK -->
             
-            <!-- A: Papan Pemuka Keseluruhan (Negeri / Pilihan Daerah) -->
             <div id="dashboardOverallView" class="space-y-8 animate-fade-in block">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-200">
                     <h2 class="text-2xl font-extrabold text-slate-800" id="overallTitleText">Analitik Keseluruhan</h2>
@@ -135,7 +112,6 @@
                 <div id="leaderboardContainer" class="mt-8"></div>
             </div>
 
-            <!-- B: Papan Pemuka Spesifik Sekolah -->
             <div id="dashboardSchoolView" class="space-y-8 animate-fade-in hidden">
                 <div class="flex flex-col md:flex-row items-start md:items-center justify-between pb-4 border-b border-slate-200 gap-4">
                     <div>
@@ -172,7 +148,6 @@
         </div> 
     </main>
 
-    <!-- MODAL CARIAN PENGGUNA SPESIFIK (SEKOLAH) -->
     <div id="userSearchModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 transition-opacity opacity-0">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden transform scale-95 transition-transform duration-300" id="userSearchModalContent">
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
@@ -225,7 +200,6 @@
         </div>
     </div>
 
-    <!-- MODAL CARIAN PENGGUNA GLOBAL (NEGERI) -->
     <div id="globalSearchModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-opacity opacity-0">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden transform scale-95 transition-transform duration-300" id="globalSearchModalContent">
             <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-indigo-50">
@@ -296,12 +270,11 @@
         </div>
     </footer>
 
-    <!-- SKRIP LUARAN & MODUL SISTEM (Susunan Kebergantungan SoC Terkawal + Cache-Buster) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="src/config/config.js?v=2"></script>
-    <script src="src/api/idb-cache.js?v=2"></script>
-    <script src="src/api/api.js?v=2"></script>
-    <script src="src/api/realtime.js?v=2"></script>
+    <script src="src/config/config.js?v=3"></script>
+    <script src="src/api/idb-cache.js?v=3"></script>
+    <script src="src/api/api.js?v=3"></script>
+    <script src="src/api/realtime.js?v=3"></script>
     <script src="src/ui/dashboard.js?v=2"></script>
     <script src="src/ui/search.js?v=2"></script>
     <script src="src/app.js?v=2"></script>

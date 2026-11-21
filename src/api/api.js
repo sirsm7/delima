@@ -1,15 +1,14 @@
-/**
- * ==============================================================================
- * SENI BINA SISTEM: DASHBOARD HIBRID
- * FAIL: api.js (Enjin Perhubungan Pangkalan Data Supabase & Integrasi Cache)
- * ==============================================================================
- */
+const targetSchema = (window.APP_CONFIG && APP_CONFIG.SUPABASE_SCHEMA)
+    ? APP_CONFIG.SUPABASE_SCHEMA
+    : 'delima_data';
 
-// Inisialisasi Klien Supabase (Beroperasi melalui Cloudflare Reverse Proxy)
 const supabaseClient = supabase.createClient(
     APP_CONFIG.SUPABASE_URL,
     APP_CONFIG.SUPABASE_ANON_KEY,
     {
+        db: {
+            schema: targetSchema
+        },
         auth: {
             persistSession: false,
             autoRefreshToken: false,
@@ -18,46 +17,33 @@ const supabaseClient = supabase.createClient(
     }
 );
 
-// Pendedahan rujukan klien Supabase untuk kegunaan modul segerak (realtime.js)
 window.supabaseClient = supabaseClient;
 
 const API = {
     client: supabaseClient,
 
-    /**
-     * FUNGSI 1: Menarik data metrik keseluruhan & Cantuman Data Daerah
-     * Menggunakan strategi Stale-While-Revalidate dengan sandaran IndexedDB.
-     */
     async fetchDashboardData(forceRefresh = false) {
         const storeName = (window.APP_CONFIG && APP_CONFIG.IDB && APP_CONFIG.IDB.STORES)
             ? APP_CONFIG.IDB.STORES.DASHBOARD_CACHE
             : 'dashboard_cache';
         const cacheKey = 'main_dashboard_data';
 
-        // 1. Semak data sedia ada dalam IndexedDB jika bukan mod muat semula paksa
         if (!forceRefresh && window.IDBCache) {
             try {
                 const cachedData = await window.IDBCache.get(storeName, cacheKey);
                 if (cachedData) {
-                    // Cetuskan penyelarasan latar belakang tanpa menyekat UI (Background Revalidation)
                     this.revalidateDashboardData(storeName, cacheKey);
                     return cachedData;
                 }
             } catch (cacheErr) {
-                console.warn("Ralat membaca cache IndexedDB:", cacheErr);
             }
         }
 
-        // 2. Tarik data terus dari pelayan sekiranya cache tiada atau luput
         return await this.fetchFreshDashboardData(storeName, cacheKey);
     },
 
-    /**
-     * Tarik data segar daripada pelayan Supabase dan simpan ke dalam cache
-     */
     async fetchFreshDashboardData(storeName, cacheKey) {
         try {
-            // Panggilan serentak (Parallel Fetching) bagi jadual metrik dan daerah
             const [delimaRes, smpidRes] = await Promise.all([
                 supabaseClient
                     .from('delima_data_sekolah')
@@ -71,7 +57,6 @@ const API = {
             if (delimaRes.error) throw delimaRes.error;
             if (smpidRes.error) throw smpidRes.error;
 
-            // Membina Hash Map daerah untuk pemetaan pantas O(1)
             const daerahMap = {};
             if (smpidRes.data) {
                 smpidRes.data.forEach(item => {
@@ -81,7 +66,6 @@ const API = {
                 });
             }
 
-            // Cantuman data silang (Cross-reference Join)
             const result = {
                 success: true,
                 timestamp: new Date().toISOString(),
@@ -92,17 +76,16 @@ const API = {
                     sekolah_keseluruhan: 0, sekolah_aktif: 0, sekolah_tidak_aktif: 0, sekolah_belum_login: 0
                 },
                 schools: delimaRes.data.map(school => {
-                    let rawDaerah = daerahMap[school.kod_sekolah];
+                    const rawDaerah = daerahMap[school.kod_sekolah];
                     return {
                         ...school,
-                        daerah: (rawDaerah && rawDaerah.trim() !== '') 
-                            ? rawDaerah.trim().toUpperCase() 
+                        daerah: (rawDaerah && rawDaerah.trim() !== '')
+                            ? rawDaerah.trim().toUpperCase()
                             : 'TIADA MAKLUMAT DAERAH'
                     };
                 })
             };
 
-            // Pengiraan agregasi metrik di peringkat klien
             const metrikTeras = [
                 'jumlah_akaun', 'jumlah_aktif', 'jumlah_tidak_aktif', 'jumlah_belum_login',
                 'murid_keseluruhan', 'murid_aktif', 'murid_tidak_aktif', 'murid_belum_login',
@@ -116,7 +99,6 @@ const API = {
                 });
             });
 
-            // Simpan salinan terkini ke dalam IndexedDB
             if (window.IDBCache && storeName && cacheKey) {
                 await window.IDBCache.set(storeName, cacheKey, result);
             }
@@ -124,13 +106,9 @@ const API = {
             return result;
 
         } catch (err) {
-            console.error("Ralat Supabase (fetchFreshDashboardData):", err);
-
-            // Sandaran luar talian: Kembalikan rekod cache lapuk jika rangkaian gagal
             if (window.IDBCache && storeName && cacheKey) {
                 const fallbackData = await window.IDBCache.get(storeName, cacheKey);
                 if (fallbackData) {
-                    console.info("Rangkaian terputus. Menggunakan salinan cache setempat IndexedDB.");
                     return fallbackData;
                 }
             }
@@ -139,9 +117,6 @@ const API = {
         }
     },
 
-    /**
-     * Penyelarasan semula di latar belakang (Background Revalidation)
-     */
     async revalidateDashboardData(storeName, cacheKey) {
         try {
             const freshData = await this.fetchFreshDashboardData(storeName, cacheKey);
@@ -151,13 +126,9 @@ const API = {
                 }));
             }
         } catch (e) {
-            console.warn("Penyelarasan latar belakang gagal:", e);
         }
     },
 
-    /**
-     * FUNGSI 2: Carian Pengguna Spesifik Sekolah Berkelajuan Tinggi
-     */
     async searchUsers(kodSekolah, searchQuery) {
         try {
             const { data, error } = await supabaseClient
@@ -180,15 +151,10 @@ const API = {
                 }))
             };
         } catch (err) {
-            console.error("Ralat Supabase (searchUsers):", err);
             return { success: false, message: err.message };
         }
     },
 
-    /**
-     * FUNGSI 3: Carian Pengguna Global (Seluruh Negeri) dengan Sekatan Bilangan Had (Capping)
-     * Menguatkuasakan had 15 rekod bagi menghalang pengekstrakan data pukal.
-     */
     async searchUsersGlobal(searchQuery) {
         try {
             const { data, error } = await supabaseClient
@@ -211,20 +177,15 @@ const API = {
                 }))
             };
         } catch (err) {
-            console.error("Ralat Supabase (searchUsersGlobal):", err);
             return { success: false, message: err.message };
         }
     },
 
-    /**
-     * FUNGSI 4: Ekstrak Penuh Data Pengguna Sekolah (Dengan Sokongan Cache Tempatan)
-     */
     async exportSchoolUsers(kodSekolah, forceRefresh = false) {
         const storeName = (window.APP_CONFIG && APP_CONFIG.IDB && APP_CONFIG.IDB.STORES)
             ? APP_CONFIG.IDB.STORES.SCHOOL_USERS
             : 'school_users_cache';
 
-        // Semak data dalam storan IndexedDB jika tidak dipaksa muat semula
         if (!forceRefresh && window.IDBCache) {
             const cached = await window.IDBCache.get(storeName, kodSekolah);
             if (cached) return cached;
@@ -249,16 +210,12 @@ const API = {
                 }))
             };
 
-            // Simpan ke storan IndexedDB
             if (window.IDBCache) {
                 await window.IDBCache.set(storeName, kodSekolah, formattedResult);
             }
 
             return formattedResult;
         } catch (err) {
-            console.error("Ralat Supabase (exportSchoolUsers):", err);
-
-            // Sandaran cache tempatan jika panggilan pelayan gagal
             if (window.IDBCache) {
                 const fallback = await window.IDBCache.get(storeName, kodSekolah);
                 if (fallback) return fallback;
